@@ -4,7 +4,7 @@ project(GithubClient VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -15,16 +15,22 @@ qt_add_executable(GithubClient
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS Source/*.cpp)
 file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS Include/*.h)
 
+# always set the property first
+set_source_files_properties(UI/Components/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(GithubClient
         URI GithubClient
         VERSION 1.0
         QML_FILES
-            Main.qml
-
+            UI/Main.qml
+            UI/Components/RepoCard.qml
+            UI/Components/Theme.qml
         SOURCES
             ${SOURCES}
             ${HEADERS}
 )
+
+
 
 target_include_directories(GithubClient PRIVATE Include/Repository Include/User)
 
@@ -41,6 +47,7 @@ set_target_properties(GithubClient PROPERTIES
 
 target_link_libraries(GithubClient
     PRIVATE Qt6::Quick
+    PRIVATE Qt6::QuickControls2
 )
 
 include(GNUInstallDirs)
