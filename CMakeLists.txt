@@ -12,12 +12,21 @@ qt_add_executable(GithubClient
     main.cpp
 )
 
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS Source/*.cpp)
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS Include/*.h)
+
 qt_add_qml_module(GithubClient
         URI GithubClient
         VERSION 1.0
         QML_FILES
             Main.qml
+
+        SOURCES
+            ${SOURCES}
+            ${HEADERS}
 )
+
+target_include_directories(GithubClient PRIVATE Include/Repository Include/User)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
