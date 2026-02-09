@@ -119,6 +119,6 @@ QtObject {
         if (!langColor)
             return palette.textSecondary
 
-        return isDark ? Qt.lighter(langColor, 130) : langColor
+        return langColor
     }
 }
