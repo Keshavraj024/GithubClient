@@ -4,7 +4,7 @@ import QtQuick 2.15
 QtObject {
     id: root
 
-    property bool isDark: true
+    property bool isDark: false
 
     function toggleTheme() {
         isDark = !isDark
@@ -73,6 +73,9 @@ QtObject {
     // -----------------------------
     // Brand colors (mode-independent)
     // -----------------------------
+    readonly property color textOnAccent: "#ffffff"
+    readonly property color sunMode: "#facc15"
+
     readonly property color accent: "#3b82f6"
     readonly property color accentHover: "#2563eb"
     readonly property color accentPressed: "#1d4ed8"

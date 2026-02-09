@@ -9,6 +9,7 @@ Item {
     id: repoCard
 
     // height: 160
+    signal clicked()
 
     required property var repositoryData
     readonly property QtObject theme: Theme.palette
@@ -92,10 +93,13 @@ Item {
             anchors.fill: cardBackground
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+
             onEntered: hoverOverlay.opacity = 0.5
             onExited: hoverOverlay.opacity = 0
+
             onPressed: hoverOverlay.opacity = 0.8
             onReleased: hoverOverlay.opacity = mouseArea.containsMouse ? 0.5 : 0
+
             onClicked: repoCard.clicked()
         }
 
@@ -137,7 +141,7 @@ Item {
                         id: statusText
                         anchors.centerIn: badgeRect
                         text: repositoryData && repositoryData.isPrivate ? "Private" : "Public"
-                        color: Theme.accent
+                        color: Theme.textOnAccent
                         font.pixelSize: 10
                         font.weight: Font.Medium
                     }
@@ -161,7 +165,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 10
+                spacing: 13
 
                 RowLayout {
                     spacing: 4
@@ -173,14 +177,14 @@ Item {
                         radius: height / 2
                         color: Theme.getLanguageColor(language)
 
-                        Behavior on color { ColorAnimation { duration: theme.normalAnimation }}
+                        Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
                     }
 
                     Text {
                         text: repositoryData.language
                         font.pixelSize: 12
                         color: theme.textSecondary
-                        Behavior on color { ColorAnimation { duration: theme.normalAnimation }}
+                        Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
                     }
                 }
                 RowLayout {
@@ -234,6 +238,31 @@ Item {
                 }
             }
 
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 3
+                radius: 1.5
+
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop {
+                        position: 0.0
+                        color: "transparent"
+                    }
+                    GradientStop {
+                        position: 0.3
+                        color: Theme.accent
+                    }
+                    GradientStop {
+                        position: 0.7
+                        color: Theme.accent
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: "transparent"
+                    }
+                }
+            }
         }
     }
 

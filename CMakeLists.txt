@@ -28,8 +28,12 @@ qt_add_qml_module(GithubClient
         SOURCES
             ${SOURCES}
             ${HEADERS}
-)
 
+        RESOURCES
+            Assets/images/App-Logo.png
+            Assets/images/sun.png
+            Assets/images/moon.png
+        )
 
 
 target_include_directories(GithubClient PRIVATE Include/Repository Include/User)
