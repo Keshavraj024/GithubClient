@@ -23,8 +23,12 @@ qt_add_qml_module(GithubClient
         VERSION 1.0
         QML_FILES
             UI/Main.qml
+
             UI/Components/RepoCard.qml
             UI/Components/Theme.qml
+            UI/Components/SearchBar.qml
+
+            UI/Controls/ColorBehavior.qml
         SOURCES
             ${SOURCES}
             ${HEADERS}

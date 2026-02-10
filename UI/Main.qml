@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 import "Components"
+import "Controls"
 
 Window {
     id: root
@@ -10,6 +11,8 @@ Window {
     height: 900
     visible: true
     title: qsTr("Github Client")
+
+    property string currentView: "repositories" // "repositories", "search", "user"
 
     property var repositories: [
         {
@@ -39,9 +42,13 @@ Window {
         anchors.fill: parent
         color: Theme.palette.background
 
-        Behavior on color {
-            ColorAnimation {
-                duration: Theme.normalAnimation
+        ColorBehavior on color {}
+
+        MouseArea {
+            anchors.fill: backgroundRect
+            onClicked: {
+                // This takes focus away from the TextField
+                backgroundRect.forceActiveFocus()
             }
         }
     }
@@ -119,6 +126,27 @@ Window {
                     Layout.fillWidth: true
                 }
 
+                RowLayout {
+                    id: searchBarLayout
+
+                    Layout.preferredWidth: 300
+                    spacing: 20
+
+                    SearchBar {
+                        Layout.preferredWidth: 250
+                        Layout.preferredHeight: 50
+
+                        onSearchRequested: function(repositoryName) {
+                            root.currentView = "search"
+                            console.log(repositoryName)
+                        }
+                        onSearchUserRequested: function(userName) {
+                            root.currentView = "user"
+                            console.log(userName)
+                        }
+                    }
+                }
+
                 Switch {
                     id: toggleSwitch
                     onCheckedChanged: Theme.toggleTheme()
@@ -171,8 +199,9 @@ Window {
             contentWidth: availableWidth
 
             background: Rectangle {
+                anchors.fill: repoScrollView
                 color: Theme.palette.background
-                Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
+                ColorBehavior on color {}
             }
 
             GridView {
@@ -200,6 +229,54 @@ Window {
 
         Item {
             Layout.fillHeight: true
+        }
+
+        Rectangle {
+            id: statusRect
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40
+            color: Theme.palette.surface
+            border {
+                color: Theme.palette.borderLight
+                width: 1
+            }
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.normalAnimation
+                }
+            }
+
+            RowLayout {
+                anchors.fill: statusRect
+                anchors.margins: 10
+
+                Text {
+                    text: repositories.length + " Repositories"
+                    font.pixelSize: 12
+                    color: Theme.palette.textSecondary
+
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.normalAnimation
+                        }
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: "Ready"
+                    font.pixelSize: 12
+                    color: Theme.palette.textSecondary
+
+                    ColorBehavior on color {}
+
+                }
+            }
         }
 
     }
