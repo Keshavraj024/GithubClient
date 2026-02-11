@@ -7,11 +7,24 @@ import GithubClient 1.0
 Item {
     id: root
 
-
     Switch {
         id: toggleSwitch
 
-        onCheckedChanged: Theme.toggleTheme()
+        onCheckedChanged: function() {
+            Theme.toggleTheme()
+            indicatorRect.scale = 0.9
+            scaleBackAnimation.start()
+        }
+
+        NumberAnimation {
+            id: scaleBackAnimation
+            target: indicatorRect
+            property: "scale"
+            from: 0.9
+            to: 1.0
+            duration: Theme.fastAnimation
+            easing.type: Easing.OutBack
+        }
 
 
         indicator: Rectangle {
@@ -61,17 +74,19 @@ Item {
                 shadowEnabled: true
                 shadowColor: thumb.color
                 shadowBlur: 1.0
-                shadowHorizontalOffset: 2
-                shadowVerticalOffset: 2
+                shadowScale: 1.1
+                shadowHorizontalOffset: 0
+                shadowVerticalOffset: 0
 
                 shadowOpacity: 1.0
 
                 Behavior on shadowOpacity { NumberAnimation { duration: Theme.normalAnimation } }
             }
 
+            // Mouse area for the cursor shape
             MouseArea{
-                acceptedButtons: Qt.NoButton
                 anchors.fill: indicatorRect
+                acceptedButtons: Qt.NoButton
                 cursorShape: Qt.PointingHandCursor
             }
         }

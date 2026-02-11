@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
+import QtQuick.Effects
 import "Components"
 import "Controls"
 
@@ -82,16 +82,44 @@ Window {
                 anchors.fill: headerRect
                 anchors.leftMargin: 32
                 anchors.rightMargin: 32
-                spacing: 3
+                spacing: 10
 
                 RowLayout {
                     spacing: 20
-                    Image {
+                    Item {
                         Layout.preferredWidth: 45
                         Layout.preferredHeight: 45
-                        fillMode: Image.PreserveAspectFit
-                        source: "qrc:/qt/qml/GithubClient/Assets/images/App-Logo.png"
+
+                        Image {
+                            id: appLogo
+                            anchors.fill: parent
+                            fillMode: Image.PreserveAspectFit
+                            source: "qrc:/qt/qml/GithubClient/Assets/images/App-Logo.png"
+                            // Hide the original image if you only want to see the version with the effect
+                            visible: true
+                        }
+
+                        MultiEffect {
+                            source: appLogo
+                            anchors.fill: appLogo
+                            shadowEnabled: true
+                            shadowBlur: 1.0
+                            shadowScale: 1.2
+                            shadowColor: "#7000ff"
+                            shadowOpacity: 0.6
+                        }
+
+                        MultiEffect {
+                            source: appLogo
+                            anchors.fill: appLogo
+                            shadowEnabled: true
+                            shadowBlur: 0.5
+                            shadowColor: "#00d2ff"
+                            shadowOpacity: 1.0
+                        }
                     }
+
+
 
                     Column {
                         spacing: 5
@@ -147,6 +175,18 @@ Window {
                     }
                 }
 
+
+                TokenInput {
+                    id:tokenInput
+                    Layout.preferredWidth: 250
+                    Layout.preferredHeight: 50
+
+                    onTokenChanged: function(token) {
+                        // console.log(token)
+                    }
+                }
+
+
                 ThemeToggleSwitch {
                     id: themeToggleSwitch
 
@@ -200,54 +240,15 @@ Window {
             Layout.fillHeight: true
         }
 
-        Rectangle {
-            id: statusRect
+        StatusBar {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
-            color: Theme.palette.surface
-            border {
-                color: Theme.palette.borderLight
-                width: 1
-            }
 
-            Behavior on color {
-                ColorAnimation {
-                    duration: Theme.normalAnimation
-                }
-            }
-
-            RowLayout {
-                anchors.fill: statusRect
-                anchors.margins: 10
-
-                Text {
-                    text: repositories.length + " Repositories"
-                    font.pixelSize: 12
-                    color: Theme.palette.textSecondary
-
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Theme.normalAnimation
-                        }
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-
-                Text {
-                    text: "Ready"
-                    font.pixelSize: 12
-                    color: Theme.palette.textSecondary
-
-                    ColorBehavior on color {}
-
-                }
-            }
+            repositoriesCount: root.repositories.length
+            currentView:  root.currentView
+            // lastUpdate: new Date()
+            isLoading: true
         }
-
     }
 
 

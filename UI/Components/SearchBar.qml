@@ -20,9 +20,12 @@ Item {
         radius: 24
         color: Qt.rgba(Theme.palette.surface.r, Theme.palette.surface.g, Theme.palette.surface.b, 0.8)
         border {
-            color: searchInput.focus ? Theme.accent : searchContainer.color
+            color: searchInput.focus ? Theme.accent : Theme.palette.borderLight
             width: 2
         }
+
+        ColorBehavior on color {}
+        ColorBehavior on border.color {}
 
         RowLayout {
             anchors.fill: searchContainer
@@ -69,7 +72,7 @@ Item {
                 onFocusChanged: {
                     if(focus) selectAll();
                 }
-            
+
                 Rectangle {
                     id: typeIndicator
                     visible: searchInput.text !== ""
@@ -82,8 +85,8 @@ Item {
                     height: typeIndicatorText.contentHeight + 8
                     radius: height * 0.2
                     color: searchInput.text.startsWith("@") ?
-                      Qt.rgba(0.2, 0.7, 1, 0.2) :
-                      Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.2)
+                               Qt.rgba(0.2, 0.7, 1, 0.2) :
+                               Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.2)
 
 
                     Text {
@@ -95,9 +98,9 @@ Item {
                     }
                     
                 }
-            
-            
-            
+
+
+
             }
 
             Button {
@@ -118,10 +121,10 @@ Item {
                     anchors.fill: searchBtn
                     radius: searchBtn.width / 2
                     color: searchBtn.pressed ?
-                                Qt.darker(Theme.accent, 1.2) :
-                            searchBtn.hovered ?
-                                Theme.accent :
-                                Qt.lighter(Theme.accent, 1.3)
+                               Qt.darker(Theme.accent, 1.2) :
+                               searchBtn.hovered ?
+                                   Theme.accent :
+                                   Qt.lighter(Theme.accent, 1.3)
 
                 }
             }
