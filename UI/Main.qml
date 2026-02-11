@@ -149,6 +149,9 @@ Window {
 
                 ThemeToggleSwitch {
                     id: themeToggleSwitch
+
+                    Layout.preferredWidth: 60
+                    Layout.preferredHeight: 30
                 }
 
 
