@@ -90,7 +90,7 @@ Window {
                         Layout.preferredWidth: 45
                         Layout.preferredHeight: 45
                         fillMode: Image.PreserveAspectFit
-                        source: "../Assets/images/App-Logo.png"
+                        source: "qrc:/qt/qml/GithubClient/Assets/images/App-Logo.png"
                     }
 
                     Column {
@@ -147,43 +147,9 @@ Window {
                     }
                 }
 
-                Switch {
-                    id: toggleSwitch
-                    onCheckedChanged: Theme.toggleTheme()
-
-                    indicator: Rectangle {
-                        id: indicatorRect
-
-                        width: 50
-                        height: 30
-                        radius: 15
-                        color: Theme.isDark
-                               ? Theme.palette.surface
-                               : Theme.palette.borderLight
-
-                        border.color: Theme.palette.border
-
-                        Rectangle {
-                            width: 30
-                            height: 30
-                            x: toggleSwitch.checked ? indicatorRect.width - width : 0
-                            radius: 15
-                            color: Theme.isDark
-                                   ? Theme.accent
-                                   : Theme.sunMode
-
-                            Behavior on x { NumberAnimation { duration: Theme.normalAnimation } }
-
-                            Image {
-                                width: 15
-                                height: 15
-                                anchors.centerIn: parent
-                                source : toggleSwitch.checked ? "../Assets/images/moon.png" : "../Assets/images/sun.png"
-                            }
-                        }
-                    }
+                ThemeToggleSwitch {
+                    id: themeToggleSwitch
                 }
-
 
 
             }

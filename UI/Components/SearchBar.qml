@@ -32,15 +32,6 @@ Item {
                 rightMargin: 8
             }
 
-            // TODO: REPLACE WITH IMAGE
-            Text {
-                text: "ὐ"
-                font.pixelSize: 16
-                color: Theme.palette.textSecondary
-
-                ColorBehavior on color {}
-            }
-
             TextField {
                 id: searchInput
                 Layout.fillWidth: true
@@ -78,7 +69,64 @@ Item {
                 onFocusChanged: {
                     if(focus) selectAll();
                 }
+            
+                Rectangle {
+                    id: typeIndicator
+                    visible: searchInput.text !== ""
+                    anchors {
+                        right: searchInput.right
+                        verticalCenter: searchInput.verticalCenter
+                        rightMargin: 10
+                    }
+                    width: typeIndicatorText.contentWidth + 8
+                    height: typeIndicatorText.contentHeight + 8
+                    radius: height * 0.2
+                    color: searchInput.text.startsWith("@") ?
+                      Qt.rgba(0.2, 0.7, 1, 0.2) :
+                      Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.2)
+
+
+                    Text {
+                        id: typeIndicatorText
+                        text : searchInput.text.startsWith("@") ? "USER" : "REPO"
+                        anchors.centerIn: parent
+                        font.pixelSize: 12
+                        color:  searchInput.text.startsWith("@") ? "#2196F3" : Theme.accent
+                    }
+                    
+                }
+            
+            
+            
             }
+
+            Button {
+                id: searchBtn
+
+                hoverEnabled: true
+
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+
+                icon.source: "qrc:/qt/qml/GithubClient/Assets/icons/search.png"
+                icon.color: "black"
+                font.pixelSize: 30
+
+                onClicked: searchInput.accepted()
+
+                background: Rectangle {
+                    anchors.fill: searchBtn
+                    radius: searchBtn.width / 2
+                    color: searchBtn.pressed ?
+                                Qt.darker(Theme.accent, 1.2) :
+                            searchBtn.hovered ?
+                                Theme.accent :
+                                Qt.lighter(Theme.accent, 1.3)
+
+                }
+            }
+
+
         }
 
     }

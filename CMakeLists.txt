@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(GithubClient VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickControls2)
 
@@ -27,6 +28,7 @@ qt_add_qml_module(GithubClient
             UI/Components/RepoCard.qml
             UI/Components/Theme.qml
             UI/Components/SearchBar.qml
+            UI/Components/ThemeToggleSwitch.qml
 
             UI/Controls/ColorBehavior.qml
         SOURCES
@@ -37,6 +39,8 @@ qt_add_qml_module(GithubClient
             Assets/images/App-Logo.png
             Assets/images/sun.png
             Assets/images/moon.png
+            Assets/icons/search.png
+
         )
 
 
