@@ -106,9 +106,10 @@ Item {
                 Text {
                     id: currentViewText
                     text: switch(root.currentView) {
-                          case "search" : return "Search Repositories"
-                          case "user": return "User Repositories"
-                          default: return "Popular Repositories"
+                          case "search" : return "🔍 Search Repositories"
+                          case "user": return "🧑 User Repositories"
+                          case "myrepos": return "📦 My Repositories"
+                          default: return "🔥 Popular Repositories"
                           }
                     anchors.centerIn: parent
                     font.pixelSize: 12

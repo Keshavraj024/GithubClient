@@ -118,6 +118,8 @@ Item {
                     font.bold: true
                     font.pixelSize: 16
                     elide: Text.ElideRight
+                    // wrapMode: Text.Wrap
+                    Layout.fillWidth: true
 
                     Behavior on color {
                         ColorAnimation {
@@ -181,7 +183,7 @@ Item {
                     }
 
                     Text {
-                        text: repositoryData.language
+                        text: repositoryData && repositoryData.language
                         font.pixelSize: 12
                         color: theme.textSecondary
                         Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
@@ -189,7 +191,7 @@ Item {
                 }
                 RowLayout {
                     spacing: 4
-                    visible: repositoryData && repositoryData.stargazersCount
+                    visible: repositoryData && repositoryData.stars
 
                     Text {
                       text: "★"
@@ -199,8 +201,7 @@ Item {
                     }
 
                     Text {
-                        // text: repoCard.formatNum(repositoryData.stargazersCount)
-                        text: formatDate("2026-02-08T11:20:00Z")
+                        text: repoCard.formatNum(repositoryData.stars)
                         font.pixelSize: 12
                         color: theme.textSecondary
                         Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
@@ -208,7 +209,7 @@ Item {
                 }
                 RowLayout {
                     spacing: 4
-                    visible: repositoryData && repositoryData.forksCount
+                    visible: repositoryData && repositoryData.forks
 
                     Text {
                       text: "⚡"
@@ -218,7 +219,7 @@ Item {
                     }
 
                     Text {
-                        text: repoCard.formatNum(repositoryData.forksCount)
+                        text: repoCard.formatNum(repositoryData.forks)
                         font.pixelSize: 12
                         color: theme.textSecondary
                         Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}

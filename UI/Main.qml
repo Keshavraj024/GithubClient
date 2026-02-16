@@ -2,8 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
+
+import GithubClient 1.0
 import "Components"
 import "Controls"
+import "Customs"
 
 Window {
     id: root
@@ -12,30 +15,50 @@ Window {
     visible: true
     title: qsTr("Github Client")
 
-    property string currentView: "repositories" // "repositories", "search", "user"
+    property string currentView: "repositories" // "repositories", "search", "user", "myrepos"
+    property string latestQuery: ""
+    property string latestUserName: ""
+    property date lastUpdated
 
-    property var repositories: [
-        {
-            fullName: "microsoft/vscode",
-            description: "Visual Studio Code - Open source code editor",
-            language: "TypeScript",
-            stargazersCount: 142000,
-            forksCount: 25000,
-            isPrivate: false,
-            updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            htmlUrl: "https://github.com/microsoft/vscode"
-        },
-        {
-            fullName: "torvalds/linux",
-            description: "Linux kernel source tree",
-            language: "C",
-            stargazersCount: 165000,
-            forksCount: 48000,
-            isPrivate: false,
-            updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-            htmlUrl: "https://github.com/torvalds/linux"
+    Component {
+        id: emptyStateComponent
+        EmptyStateFeedback {
+            currentView: root.currentView
         }
-    ]
+    }
+
+    Component {
+        id: gridViewComponent
+        GridView {
+            id: repositoryGrid
+
+            Layout.margins: 10
+            clip: true
+
+            model: githubService.repositories
+            cellWidth: Math.floor(repositoryGrid.width / Math.max(1, Math.floor(repositoryGrid.width / 380)))
+            cellHeight: 180
+
+            delegate: RepoCard {
+                required property var modelData
+                width: repositoryGrid.cellWidth
+                height: repositoryGrid.cellHeight
+                repositoryData: modelData
+                onClicked: {
+                    if (repositoryData.htmlUrl) {
+                        Qt.openUrlExternally(repositoryData.htmlUrl)
+                    }
+                }
+            }
+        }
+    }
+
+    GitHubService {
+        id: githubService
+        onRepositoriesChanged: {
+            lastUpdated = new Date()
+        }
+    }
 
     Rectangle {
         id: backgroundRect
@@ -165,16 +188,19 @@ Window {
                         Layout.preferredHeight: 50
 
                         onSearchRequested: function(repositoryName) {
+                            root.latestQuery = repositoryName
+                            githubService.searchRepositories(repositoryName)
                             root.currentView = "search"
-                            console.log(repositoryName)
+                            // console.log(repositoryName)
                         }
                         onSearchUserRequested: function(userName) {
+                            root.latestUserName = userName
+                            githubService.fetchUserRepositories(userName)
                             root.currentView = "user"
-                            console.log(userName)
+                            // console.log(userName)
                         }
                     }
                 }
-
 
                 TokenInput {
                     id:tokenInput
@@ -182,7 +208,7 @@ Window {
                     Layout.preferredHeight: 50
 
                     onTokenChanged: function(token) {
-                        // console.log(token)
+                        githubService.authToken = token
                     }
                 }
 
@@ -196,60 +222,131 @@ Window {
 
 
             }
-
-
         }
 
-        ScrollView {
-            id: repoScrollView
-            Layout.fillHeight: true
+        Rectangle {
+            id: toolbarRect
             Layout.fillWidth: true
-            clip: true
-            contentWidth: availableWidth
+            Layout.preferredHeight: 60
 
-            background: Rectangle {
-                anchors.fill: repoScrollView
-                color: Theme.palette.background
-                ColorBehavior on color {}
-            }
+            color: Theme.palette.surface
+            border.color: Theme.palette.borderLight
+            border.width: 1
 
-            GridView {
-                id: repositoryGrid
-                anchors.fill: parent
-                anchors.margins: 20
-                model: root.repositories
-                cellWidth: Math.floor(repositoryGrid.width / Math.max(1, Math.floor(repositoryGrid.width / 380)))
-                cellHeight: 180
+            ColorBehavior on color {}
+            ColorBehavior on border.color {}
 
-                delegate: RepoCard {
-                    required property var modelData
-                    width: repositoryGrid.cellWidth
-                    height: repositoryGrid.cellHeight
-                    repositoryData: modelData
-                    onClicked: {
-                        console.log("Repository clicked:", repositoryData.fullName)
-                        if (repositoryData.htmlUrl) {
-                            Qt.openUrlExternally(repositoryData.htmlUrl)
+            RowLayout {
+                anchors.fill: toolbarRect
+                anchors.margins: 15
+
+                spacing: 10
+
+                CustomButton {
+                    id: popularRepoBtn
+
+                    Layout.preferredWidth: 100
+                    Layout.preferredHeight: 30
+
+                    buttonText: "🔥 Popular"
+
+                    onButtonClicked: {
+                        currentView = "repositories"
+                        githubService.searchRepositories("stars:>10000", "stars", "desc")
+                    }
+                }
+
+                CustomButton {
+                    id: refereshBtn
+
+                    Layout.preferredWidth: 100
+                    Layout.preferredHeight: 30
+
+                    buttonText: "⟳ Refresh"
+
+                    onButtonClicked: {
+                        switch (root.currentView) {
+                        case "user" : (root.latestUserName.length > 0) ?
+                                          githubService.fetchUserRepositories(root.latestUserName) :
+                                          qDebug() << "Username is Empty while refreshing"
+                            break
+                        case "search": (root.latestQuery.length > 0) ?
+                                           githubService.searchRepositories(root.latestQuery) :
+                                           qDebug() << "Query is Empty while refreshing"
+                            break
+                        case "myrepos": githubService.fetchAuthenticatedUserRepositories()
+                            break
+                        default:
+                            githubService.searchRepositories("stars:>10000", "stars", "desc")
                         }
                     }
+                }
+
+                CustomButton {
+                    id: myRepoBtn
+                    visible: githubService.authToken.length > 0
+
+                    Layout.preferredWidth: 100
+                    Layout.preferredHeight: 30
+
+                    buttonText: "🧑 My Repo"
+
+                    onButtonClicked: {
+                        githubService.fetchAuthenticatedUserRepositories()
+                        root.currentView = "myrepos"
+                        root.latestQuery = ""
+                        root.latestUserName = ""
+
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: {
+                        switch(root.currentView) {
+                        case "search": return "🔍 Search Results"
+                        case "user": return "🧑 User Repositories"
+                        case "myrepos": return "📦 My Repositories"
+                        default: return "🔥 Popular Repositories"
+                        }
+                    }
+                    color: Theme.accent
+                    font.pixelSize: 13
+                    ColorBehavior on color {}
                 }
             }
         }
 
         Item {
+            id: contentArea
+            Layout.fillWidth: true
             Layout.fillHeight: true
+
+            Loader {
+                anchors.fill: contentArea
+                sourceComponent: {
+                    // if (githubService.isLoading)
+                    //     return loadingComponent
+                    if ((githubService.repositories.length) === 0)
+                        return emptyStateComponent
+                    else
+                        return gridViewComponent
+                }
+            }
         }
 
         StatusBar {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
 
-            repositoriesCount: root.repositories.length
+            repositoriesCount: githubService.repositories.length
             currentView:  root.currentView
-            // lastUpdate: new Date()
-            isLoading: true
+            lastUpdate: root.lastUpdated
+            isLoading: githubService.isLoading
         }
     }
-
 
 }

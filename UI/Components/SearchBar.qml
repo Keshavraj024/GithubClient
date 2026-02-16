@@ -7,9 +7,6 @@ import "../Controls"
 Item {
     id: root
 
-    property string latestQuery: ""
-    property string latestUserName: ""
-
     signal searchRequested(string request)
     signal searchUserRequested(string request)
 
@@ -55,10 +52,9 @@ Item {
                     var searchText = searchInput.text
                     if(searchText.trim().length > 0) {
                         if(searchText.startsWith("@")) {
-                            root.latestUserName = searchText.substring(1)
+                            // console.log(searchText.substring(1))
                             root.searchUserRequested(searchText.substring(1))
                         } else {
-                            root.latestQuery = searchText.trim()
                             root.searchRequested(searchText.trim())
                         }
                     }

@@ -29,8 +29,13 @@ qt_add_qml_module(GithubClient
             UI/Components/Theme.qml
             UI/Components/SearchBar.qml
             UI/Components/ThemeToggleSwitch.qml
+            UI/Components/TokenInput.qml
+            UI/Components/StatusBar.qml
+            UI/Components/EmptyStateFeedback.qml
 
             UI/Controls/ColorBehavior.qml
+
+            UI/Customs/CustomButton.qml
         SOURCES
             ${SOURCES}
             ${HEADERS}
@@ -40,11 +45,11 @@ qt_add_qml_module(GithubClient
             Assets/images/sun.png
             Assets/images/moon.png
             Assets/icons/search.png
-
+            QML_FILES
         )
 
 
-target_include_directories(GithubClient PRIVATE Include/Repository Include/User)
+target_include_directories(GithubClient PRIVATE Include/Repository Include/User Include/Api)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
