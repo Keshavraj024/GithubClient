@@ -48,6 +48,7 @@ qt_add_qml_module(GithubClient
             Assets/images/sun.png
             Assets/images/moon.png
             Assets/icons/search.png
+            QML_FILES UI/Components/ErrorPopup.qml
         )
 
 

@@ -60,6 +60,13 @@ Window {
         }
     }
 
+    Component {
+        id: popupComponent
+        ErrorPopup {
+            message: githubService.errorMessage
+        }
+    }
+
     GitHubService {
         id: githubService
         onRepositoriesChanged: {
@@ -119,7 +126,7 @@ Window {
             currentView: root.currentView
 
             onPopularButtonClicked: {
-                currentView = "repositories"
+                root.currentView = "repositories"
                 githubService.searchRepositories("stars:>10000", "stars", "desc")
             }
 
@@ -162,7 +169,9 @@ Window {
                 sourceComponent: {
                     if (githubService.isLoading)
                         return loadingComponent
-                    if ((githubService.repositories.length) === 0)
+                    else if(githubService.errorMessage.length > 0 && !githubService.isLoading)
+                        return popupComponent
+                    else if ((githubService.repositories.length) === 0)
                         return emptyStateComponent
                     else
                         return gridViewComponent

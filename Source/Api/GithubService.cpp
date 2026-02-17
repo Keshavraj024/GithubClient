@@ -188,6 +188,7 @@ void GitHubService::searchRepositories(const QString &query,
     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
     request.setRawHeader("Accept", "application/vnd.github.v3+json");
 
+    // TODO : if this field is not empty then it throws error
     if (!m_authToken.isEmpty()) {
         request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
     }
