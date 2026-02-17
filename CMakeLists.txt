@@ -32,6 +32,9 @@ qt_add_qml_module(GithubClient
             UI/Components/TokenInput.qml
             UI/Components/StatusBar.qml
             UI/Components/EmptyStateFeedback.qml
+            UI/Components/LoadingOverlay.qml
+            UI/Components/Header.qml
+            UI/Components/ToolBar.qml
 
             UI/Controls/ColorBehavior.qml
 
@@ -45,7 +48,6 @@ qt_add_qml_module(GithubClient
             Assets/images/sun.png
             Assets/images/moon.png
             Assets/icons/search.png
-            QML_FILES
         )
 
 
