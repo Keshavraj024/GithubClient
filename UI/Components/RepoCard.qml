@@ -134,8 +134,8 @@ Item {
 
                 Rectangle {
                     id: badgeRect
-                    width: statusText.implicitWidth + 16
-                    height: statusText.implicitHeight + 10
+                    Layout.preferredWidth: statusText.implicitWidth + 16
+                    Layout.preferredHeight: statusText.implicitHeight + 10
                     radius: 12
                     color: repositoryData?.isPrivate ? Theme.error : Theme.success
 
@@ -150,6 +150,21 @@ Item {
 
                     Behavior on color { ColorAnimation { duration: Theme.normalAnimation } }
 
+                }
+
+                CustomButton {
+                    id: myRepoBtn
+
+                    Layout.preferredWidth: 65
+                    Layout.preferredHeight: 30
+
+                    buttonText: "⭐ Save"
+
+                    onButtonClicked: {
+                        // root.myrepoButtonClicked()
+                        // DB.collections.addCollection("QT");
+                        console.log("Save to db")
+                    }
                 }
             }
 
@@ -194,10 +209,10 @@ Item {
                     visible: repositoryData && repositoryData.stars
 
                     Text {
-                      text: "★"
-                      color: Theme.warning
-                      font.pixelSize: 12
-                      Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
+                        text: "★"
+                        color: Theme.warning
+                        font.pixelSize: 12
+                        Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
                     }
 
                     Text {
@@ -212,10 +227,10 @@ Item {
                     visible: repositoryData && repositoryData.forks
 
                     Text {
-                      text: "⚡"
-                      color: Theme.info
-                      font.pixelSize: 12
-                      Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
+                        text: "⚡"
+                        color: Theme.info
+                        font.pixelSize: 12
+                        Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}
                     }
 
                     Text {

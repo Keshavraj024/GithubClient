@@ -1,6 +1,9 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
+#include "DataCenter.h"
+
+#include <QQmlContext>
 
 int main(int argc, char *argv[])
 {
@@ -12,6 +15,10 @@ int main(int argc, char *argv[])
     app.setOrganizationName("Modern GitHub Client");
 
     QQmlApplicationEngine engine;
+
+    DataCenter dataCenter;
+    engine.rootContext()->setContextProperty("DB", &dataCenter);
+
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,

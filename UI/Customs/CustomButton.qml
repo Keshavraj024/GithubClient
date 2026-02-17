@@ -17,6 +17,7 @@ Item {
         hoverEnabled: true
         anchors.fill: parent
 
+
         background: Rectangle {
             anchors.fill: parent
             radius: 15
@@ -39,6 +40,16 @@ Item {
             verticalAlignment: Text.AlignVCenter
 
             ColorBehavior on color {}
+        }
+
+        MouseArea
+        {
+            id: mouseArea
+            anchors.fill: parent
+            onPressed:  function(mouse) {
+                mouse.accepted = false
+            }
+            cursorShape: Qt.PointingHandCursor
         }
 
         onClicked: buttonClicked()
