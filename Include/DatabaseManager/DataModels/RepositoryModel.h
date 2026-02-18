@@ -4,32 +4,54 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 
-struct CollectionData
+struct RepositoryData
 {
     int id;
-    QString name;
-    QString createdAt;
+    QString fullName;
+    QString description;
+    int stars;
+    int forks;
+    QString language;
+    QString htmlUrl;
+    int collectionId;
+    QString savedAt;
 };
 
-class CollectionModel : public QAbstractListModel
+class RepositoryModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
-    enum CollectionRoles { IdRole = Qt::UserRole + 1, NameRole, CreatedAtRole };
+    enum RepositoryRoles {
+        IdRole = Qt::UserRole + 1,
+        FullNameRole,
+        DescriptionRole,
+        StarsRole,
+        ForksRole,
+        LanguageRole,
+        HtmlUrlRole,
+        CollectionIdRole,
+        SavedAtRole
+    };
 
-    explicit CollectionModel(QSqlDatabase db, QObject *parent = nullptr);
+    explicit RepositoryModel(QSqlDatabase db, QObject *parent = nullptr);
 
-    // QAbstractListModel interface
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    // CRUD API for QML
-    Q_INVOKABLE void addCollection(const QString &name);
-    Q_INVOKABLE void removeCollection(int id);
-    Q_INVOKABLE void refresh(); // Reloads from SQL
+    // CRUD API
+    Q_INVOKABLE void addRepository(int id,
+                                   const QString &fullName,
+                                   const QString &desc,
+                                   int stars,
+                                   int forks,
+                                   const QString &lang,
+                                   const QString &url,
+                                   int colId);
+    Q_INVOKABLE void removeRepository(int id);
+    Q_INVOKABLE void loadAll();
 
 private:
     QSqlDatabase m_db;
-    QList<CollectionData> m_collections;
+    QList<RepositoryData> m_repos;
 };

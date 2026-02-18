@@ -1,109 +1,130 @@
-#include "CollectionModel.h"
+#include "RepositoryModel.h"
 #include <QDebug>
 #include <QSqlError>
 
-CollectionModel::CollectionModel(QSqlDatabase db, QObject *parent)
+RepositoryModel::RepositoryModel(QSqlDatabase db, QObject *parent)
     : QAbstractListModel(parent)
     , m_db(db)
 {
-    refresh();
+    loadAll();
 }
 
-int CollectionModel::rowCount(const QModelIndex &parent) const
+int RepositoryModel::rowCount(const QModelIndex &parent) const
 {
-    if (parent.isValid())
-        return 0;
-    return m_collections.count();
+    return m_repos.count();
 }
 
-QHash<int, QByteArray> CollectionModel::roleNames() const
+QHash<int, QByteArray> RepositoryModel::roleNames() const
 {
-    QHash<int, QByteArray> roles;
-    roles[IdRole] = "id";
-    roles[NameRole] = "name";
-    roles[CreatedAtRole] = "createdAt";
-    return roles;
+    return {{IdRole, "repoId"},
+            {FullNameRole, "fullName"},
+            {DescriptionRole, "description"},
+            {StarsRole, "stars"},
+            {ForksRole, "forks"},
+            {LanguageRole, "language"},
+            {HtmlUrlRole, "htmlUrl"},
+            {CollectionIdRole, "collectionId"},
+            {SavedAtRole, "savedAt"}};
 }
 
-QVariant CollectionModel::data(const QModelIndex &index, int role) const
+QVariant RepositoryModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= m_collections.count())
+    if (!index.isValid() || index.row() >= m_repos.count())
         return QVariant();
-
-    const auto &item = m_collections.at(index.row());
+    const auto &r = m_repos.at(index.row());
 
     switch (role) {
     case IdRole:
-        return item.id;
-    case NameRole:
-        return item.name;
-    case CreatedAtRole:
-        return item.createdAt;
-    default:
-        return QVariant();
+        return r.id;
+    case FullNameRole:
+        return r.fullName;
+    case DescriptionRole:
+        return r.description;
+    case StarsRole:
+        return r.stars;
+    case ForksRole:
+        return r.forks;
+    case LanguageRole:
+        return r.language;
+    case HtmlUrlRole:
+        return r.htmlUrl;
+    case CollectionIdRole:
+        return r.collectionId;
+    case SavedAtRole:
+        return r.savedAt;
     }
+    return QVariant();
 }
 
-void CollectionModel::refresh()
-{
-    beginResetModel();
-    m_collections.clear();
-
-    QSqlQuery query(m_db);
-    query.prepare("SELECT id, name, created_at FROM collections");
-
-    if (query.exec()) {
-        while (query.next()) {
-            m_collections.append(
-                {query.value(0).toInt(), query.value(1).toString(), query.value(2).toString()});
-        }
-    } else {
-        qWarning() << "Fetch collections failed:" << query.lastError().text();
-    }
-    endResetModel();
-}
-
-void CollectionModel::addCollection(const QString &name)
+void RepositoryModel::addRepository(int id,
+                                    const QString &fullName,
+                                    const QString &desc,
+                                    int stars,
+                                    int forks,
+                                    const QString &lang,
+                                    const QString &url,
+                                    int colId)
 {
     QSqlQuery query(m_db);
-    query.prepare("INSERT INTO collections (name) VALUES (:name)");
-    query.bindValue(":name", name);
+    query.prepare("INSERT INTO saved_repositories (id, full_name, description, stars, forks, "
+                  "language, html_url, collection_id) "
+                  "VALUES (:id, :name, :desc, :stars, :forks, :lang, :url, :colId)");
+    query.bindValue(":id", id);
+    query.bindValue(":name", fullName);
+    query.bindValue(":desc", desc);
+    query.bindValue(":stars", stars);
+    query.bindValue(":forks", forks);
+    query.bindValue(":lang", lang);
+    query.bindValue(":url", url);
+    query.bindValue(":colId", colId);
 
     if (query.exec()) {
-        int newId = query.lastInsertId().toInt();
+        QSqlQuery sync(m_db);
+        sync.prepare("SELECT saved_at FROM saved_repositories WHERE id = :id");
+        sync.bindValue(":id", id);
 
-        QSqlQuery syncQuery(m_db);
-        syncQuery.prepare("SELECT id, name, created_at FROM collections WHERE id = :id");
-        syncQuery.bindValue(":id", newId);
-
-        if (syncQuery.exec() && syncQuery.next()) {
-            beginInsertRows(QModelIndex(), m_collections.count(), m_collections.count());
-
-            m_collections.append({syncQuery.value(0).toInt(),
-                                  syncQuery.value(1).toString(),
-                                  syncQuery.value(2).toString()});
+        if (sync.exec() && sync.next()) {
+            beginInsertRows(QModelIndex(), m_repos.count(), m_repos.count());
+            m_repos.append(
+                {id, fullName, desc, stars, forks, lang, url, colId, sync.value(0).toString()});
             endInsertRows();
         }
-    } else {
-        qWarning() << "Insert failed:" << query.lastError().text();
-        // TODO : Here you could emit a signal 'errorOccurred(QString)' to show a popup in QML
     }
 }
 
-void CollectionModel::removeCollection(int id)
+void RepositoryModel::removeRepository(int id)
 {
     QSqlQuery query(m_db);
-    query.prepare("DELETE FROM collections WHERE id = :id");
+    query.prepare("DELETE FROM saved_repositories WHERE id = :id");
     query.bindValue(":id", id);
 
     if (query.exec()) {
-        for (int collectionIdx = 0; collectionIdx < m_collections.count(); ++collectionIdx) {
-            if (m_collections[collectionIdx].id == id) {
-                beginRemoveRows(QModelIndex(), collectionIdx, collectionIdx);
-                m_collections.removeAt(collectionIdx);
+        for (int repoIdx = 0; repoIdx < m_repos.count(); ++repoIdx) {
+            if (m_repos[repoIdx].id == id) {
+                beginRemoveRows(QModelIndex(), repoIdx, repoIdx);
+                m_repos.removeAt(repoIdx);
                 endRemoveRows();
                 break;
             }
         }
     }
+}
+
+void RepositoryModel::loadAll()
+{
+    beginResetModel();
+    m_repos.clear();
+    QSqlQuery query("SELECT * FROM saved_repositories", m_db);
+    while (query.next()) {
+        m_repos.append({query.value("id").toInt(),
+                        query.value("full_name").toString(),
+                        query.value("description").toString(),
+                        query.value("stars").toInt(),
+                        query.value("forks").toInt(),
+                        query.value("language").toString(),
+                        query.value("html_url").toString(),
+                        query.value("collection_id").toInt(),
+                        query.value("saved_at").toString()});
+    }
+    endResetModel();
 }
