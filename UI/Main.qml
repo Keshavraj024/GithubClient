@@ -35,9 +35,11 @@ Window {
             Layout.margins: 10
             clip: true
 
-            model: githubService.repositories
+            model: githubService.model
             cellWidth: Math.floor(repositoryGrid.width / Math.max(1, Math.floor(repositoryGrid.width / 380)))
             cellHeight: 180
+
+            Component.onCompleted: console.log(model)
 
             delegate: RepoCard {
                 required property var modelData
@@ -67,11 +69,11 @@ Window {
         }
     }
 
-    GitHubService {
+    RepositoryController {
         id: githubService
-        onRepositoriesChanged: {
-            lastUpdated = new Date()
-        }
+        // onRepositoriesChanged: {
+        //     lastUpdated = new Date()
+        // }
     }
 
     Rectangle {
@@ -166,16 +168,17 @@ Window {
 
             Loader {
                 anchors.fill: contentArea
-                sourceComponent: {
-                    if (githubService.isLoading)
-                        return loadingComponent
-                    else if(githubService.errorMessage.length > 0 && !githubService.isLoading)
-                        return popupComponent
-                    else if ((githubService.repositories.length) === 0)
-                        return emptyStateComponent
-                    else
-                        return gridViewComponent
-                }
+                sourceComponent: gridViewComponent
+                // sourceComponent: {
+                //     if (githubService.isLoading)
+                //         return loadingComponent
+                //     else if(githubService.errorMessage.length > 0 && !githubService.isLoading)
+                //         return popupComponent
+                //     else if ((githubService.repositories.length) === 0)
+                //         return emptyStateComponent
+                //     else
+                //         return gridViewComponent
+                // }
             }
         }
 

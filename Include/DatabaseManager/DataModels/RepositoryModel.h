@@ -1,57 +1,52 @@
 #pragma once
 
 #include <QAbstractListModel>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-
-struct RepositoryData
-{
-    int id;
-    QString fullName;
-    QString description;
-    int stars;
-    int forks;
-    QString language;
-    QString htmlUrl;
-    int collectionId;
-    QString savedAt;
-};
+#include <QByteArray>
+#include <QHash>
+#include "RepositoryItem.h"
 
 class RepositoryModel : public QAbstractListModel
 {
     Q_OBJECT
+
 public:
-    enum RepositoryRoles {
+    enum Roles {
         IdRole = Qt::UserRole + 1,
+        NameRole,
         FullNameRole,
         DescriptionRole,
+        HtmlUrlRole,
+        LanguageRole,
         StarsRole,
         ForksRole,
-        LanguageRole,
-        HtmlUrlRole,
+        OpenIssuesRole,
+        ArchivedRole,
+        IsPrivateRole,
+        UpdatedAtRole,
+        OwnerIdRole,
+        OwnerLoginRole,
+        OwnerAvatarUrlRole,
+        OwnerHtmlUrlRole,
+        OwnerTypeRole,
         CollectionIdRole,
-        SavedAtRole
+        SavedAtRole,
+        IsSavedRole
     };
 
-    explicit RepositoryModel(QSqlDatabase db, QObject *parent = nullptr);
+    explicit RepositoryModel(QObject *parent = nullptr);
 
+    // QAbstractItemModel interface
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    // CRUD API
-    Q_INVOKABLE void addRepository(int id,
-                                   const QString &fullName,
-                                   const QString &desc,
-                                   int stars,
-                                   int forks,
-                                   const QString &lang,
-                                   const QString &url,
-                                   int colId);
-    Q_INVOKABLE void removeRepository(int id);
-    Q_INVOKABLE void loadAll();
+    // Data Management
+    void updateFromApi(const QList<RepositoryItem> &apiResults);
+    void loadFromDatabase(const QList<RepositoryItem> &dbResults);
+    void clearSearch();
+    RepositoryItem &getItem(int row);
+    void notifyRowChanged(int row);
 
 private:
-    QSqlDatabase m_db;
-    QList<RepositoryData> m_repos;
+    QList<RepositoryItem> m_repos;
 };

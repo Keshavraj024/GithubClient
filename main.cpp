@@ -1,9 +1,9 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQuickStyle>
-#include "DataCenter.h"
-
 #include <QQmlContext>
+#include <QQuickStyle>
+#include "DatabaseManager.h"
+#include "RepositoryItem.h"
 
 int main(int argc, char *argv[])
 {
@@ -16,8 +16,11 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    DataCenter dataCenter;
-    engine.rootContext()->setContextProperty("DB", &dataCenter);
+    DatabaseManager db;
+    db.initialize();
+
+    qRegisterMetaType<RepositoryItem>("RepositoryItem");
+    qRegisterMetaType<QList<RepositoryItem>>("QList<RepositoryItem>");
 
     QObject::connect(
         &engine,

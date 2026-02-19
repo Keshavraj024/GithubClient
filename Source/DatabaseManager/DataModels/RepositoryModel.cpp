@@ -1,130 +1,144 @@
 #include "RepositoryModel.h"
-#include <QDebug>
-#include <QSqlError>
+#include <algorithm>
 
-RepositoryModel::RepositoryModel(QSqlDatabase db, QObject *parent)
+RepositoryModel::RepositoryModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_db(db)
-{
-    loadAll();
-}
+{}
 
 int RepositoryModel::rowCount(const QModelIndex &parent) const
 {
-    return m_repos.count();
+    if (parent.isValid())
+        return 0;
+    return m_repos.size();
 }
 
 QHash<int, QByteArray> RepositoryModel::roleNames() const
 {
-    return {{IdRole, "repoId"},
-            {FullNameRole, "fullName"},
-            {DescriptionRole, "description"},
-            {StarsRole, "stars"},
-            {ForksRole, "forks"},
-            {LanguageRole, "language"},
-            {HtmlUrlRole, "htmlUrl"},
-            {CollectionIdRole, "collectionId"},
-            {SavedAtRole, "savedAt"}};
+    QHash<int, QByteArray> roles;
+    roles[IdRole] = "repoId";
+    roles[NameRole] = "name";
+    roles[FullNameRole] = "fullName";
+    roles[DescriptionRole] = "description";
+    roles[HtmlUrlRole] = "htmlUrl";
+    roles[LanguageRole] = "language";
+    roles[StarsRole] = "stars";
+    roles[ForksRole] = "forks";
+    roles[OpenIssuesRole] = "openIssues";
+    roles[ArchivedRole] = "archived";
+    roles[IsPrivateRole] = "isPrivate";
+    roles[UpdatedAtRole] = "updatedAt";
+    roles[OwnerIdRole] = "ownerId";
+    roles[OwnerLoginRole] = "ownerLogin";
+    roles[OwnerAvatarUrlRole] = "ownerAvatarUrl";
+    roles[OwnerHtmlUrlRole] = "ownerHtmlUrl";
+    roles[OwnerTypeRole] = "ownerType";
+    roles[CollectionIdRole] = "collectionId";
+    roles[SavedAtRole] = "savedAt";
+    roles[IsSavedRole] = "isSaved";
+    return roles;
 }
 
 QVariant RepositoryModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= m_repos.count())
+    if (!index.isValid() || index.row() >= m_repos.size())
         return QVariant();
-    const auto &r = m_repos.at(index.row());
 
+    const auto &item = m_repos[index.row()];
     switch (role) {
     case IdRole:
-        return r.id;
+        return item.id;
+    case NameRole:
+        return item.name;
     case FullNameRole:
-        return r.fullName;
+        return item.fullName;
     case DescriptionRole:
-        return r.description;
-    case StarsRole:
-        return r.stars;
-    case ForksRole:
-        return r.forks;
-    case LanguageRole:
-        return r.language;
+        return item.description;
     case HtmlUrlRole:
-        return r.htmlUrl;
+        return item.htmlUrl;
+    case LanguageRole:
+        return item.language;
+    case StarsRole:
+        return item.stars;
+    case ForksRole:
+        return item.forks;
+    case OpenIssuesRole:
+        return item.openIssues;
+    case ArchivedRole:
+        return item.archived;
+    case IsPrivateRole:
+        return item.isPrivate;
+    case UpdatedAtRole:
+        return item.updatedAt;
+    case OwnerIdRole:
+        return item.owner.id;
+    case OwnerLoginRole:
+        return item.owner.login;
+    case OwnerAvatarUrlRole:
+        return item.owner.avatarUrl;
+    case OwnerHtmlUrlRole:
+        return item.owner.htmlUrl;
+    case OwnerTypeRole:
+        return item.owner.type;
     case CollectionIdRole:
-        return r.collectionId;
+        return item.collectionId;
     case SavedAtRole:
-        return r.savedAt;
+        return item.savedAt;
+    case IsSavedRole:
+        return item.isLocallySaved;
     }
     return QVariant();
 }
 
-void RepositoryModel::addRepository(int id,
-                                    const QString &fullName,
-                                    const QString &desc,
-                                    int stars,
-                                    int forks,
-                                    const QString &lang,
-                                    const QString &url,
-                                    int colId)
+void RepositoryModel::updateFromApi(const QList<RepositoryItem> &apiResults)
 {
-    QSqlQuery query(m_db);
-    query.prepare("INSERT INTO saved_repositories (id, full_name, description, stars, forks, "
-                  "language, html_url, collection_id) "
-                  "VALUES (:id, :name, :desc, :stars, :forks, :lang, :url, :colId)");
-    query.bindValue(":id", id);
-    query.bindValue(":name", fullName);
-    query.bindValue(":desc", desc);
-    query.bindValue(":stars", stars);
-    query.bindValue(":forks", forks);
-    query.bindValue(":lang", lang);
-    query.bindValue(":url", url);
-    query.bindValue(":colId", colId);
+    for (const auto &newItem : apiResults) {
+        auto it = std::find_if(m_repos.begin(), m_repos.end(), [&](const RepositoryItem &item) {
+            return item.id == newItem.id;
+        });
 
-    if (query.exec()) {
-        QSqlQuery sync(m_db);
-        sync.prepare("SELECT saved_at FROM saved_repositories WHERE id = :id");
-        sync.bindValue(":id", id);
-
-        if (sync.exec() && sync.next()) {
-            beginInsertRows(QModelIndex(), m_repos.count(), m_repos.count());
-            m_repos.append(
-                {id, fullName, desc, stars, forks, lang, url, colId, sync.value(0).toString()});
+        if (it != m_repos.end()) {
+            it->stars = newItem.stars;
+            it->forks = newItem.forks;
+            it->openIssues = newItem.openIssues;
+            it->updatedAt = newItem.updatedAt;
+            int row = std::distance(m_repos.begin(), it);
+            emit dataChanged(index(row), index(row));
+        } else {
+            beginInsertRows(QModelIndex(), m_repos.size(), m_repos.size());
+            qDebug() << "Inserting items";
+            m_repos.append(newItem);
             endInsertRows();
         }
     }
 }
 
-void RepositoryModel::removeRepository(int id)
+void RepositoryModel::loadFromDatabase(const QList<RepositoryItem> &dbResults)
 {
-    QSqlQuery query(m_db);
-    query.prepare("DELETE FROM saved_repositories WHERE id = :id");
-    query.bindValue(":id", id);
+    beginResetModel();
+    m_repos = dbResults;
+    for (auto &item : m_repos)
+        item.isLocallySaved = true;
+    endResetModel();
+}
 
-    if (query.exec()) {
-        for (int repoIdx = 0; repoIdx < m_repos.count(); ++repoIdx) {
-            if (m_repos[repoIdx].id == id) {
-                beginRemoveRows(QModelIndex(), repoIdx, repoIdx);
-                m_repos.removeAt(repoIdx);
-                endRemoveRows();
-                break;
-            }
+void RepositoryModel::clearSearch()
+{
+    for (int i = m_repos.size() - 1; i >= 0; --i) {
+        if (!m_repos[i].isLocallySaved) {
+            beginRemoveRows(QModelIndex(), i, i);
+            m_repos.removeAt(i);
+            endRemoveRows();
         }
     }
 }
 
-void RepositoryModel::loadAll()
+RepositoryItem &RepositoryModel::getItem(int row)
 {
-    beginResetModel();
-    m_repos.clear();
-    QSqlQuery query("SELECT * FROM saved_repositories", m_db);
-    while (query.next()) {
-        m_repos.append({query.value("id").toInt(),
-                        query.value("full_name").toString(),
-                        query.value("description").toString(),
-                        query.value("stars").toInt(),
-                        query.value("forks").toInt(),
-                        query.value("language").toString(),
-                        query.value("html_url").toString(),
-                        query.value("collection_id").toInt(),
-                        query.value("saved_at").toString()});
-    }
-    endResetModel();
+    return m_repos[row];
+}
+
+void RepositoryModel::notifyRowChanged(int row)
+{
+    QModelIndex idx = index(row);
+    emit dataChanged(idx, idx);
 }

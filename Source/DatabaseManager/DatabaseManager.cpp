@@ -43,6 +43,18 @@ bool DatabaseManager::createTables()
     }
 
     // Saved repositories table
+    if (!query.exec("CREATE TABLE IF NOT EXISTS users ("
+                    "id INTEGER PRIMARY KEY,"
+                    "login TEXT,"
+                    "avatar_url TEXT,"
+                    "html_url TEXT,"
+                    "type TEXT"
+                    ")")) {
+        qDebug() << "Create users table failed:" << query.lastError().text();
+        return false;
+    }
+
+    // 2. Create the Repositories table (pointing to the user)
     if (!query.exec("CREATE TABLE IF NOT EXISTS saved_repositories ("
                     "id INTEGER PRIMARY KEY," // GitHub repo ID
                     "full_name TEXT,"
@@ -52,8 +64,10 @@ bool DatabaseManager::createTables()
                     "language TEXT,"
                     "html_url TEXT,"
                     "collection_id INTEGER,"
+                    "owner_id INTEGER," // Foreign Key link to users table
                     "saved_at TEXT DEFAULT CURRENT_TIMESTAMP,"
-                    "FOREIGN KEY(collection_id) REFERENCES collections(id)"
+                    "FOREIGN KEY(collection_id) REFERENCES collections(id),"
+                    "FOREIGN KEY(owner_id) REFERENCES users(id)"
                     ")")) {
         qDebug() << "Create saved_repositories table failed:" << query.lastError().text();
         return false;
