@@ -19,6 +19,7 @@ public:
 
     // Check if repo is already saved
     bool exists(qint64 repoId);
+    QMap<qlonglong, QString> getAllSavedDates();
 
 private:
     QSqlDatabase m_db;

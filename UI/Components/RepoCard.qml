@@ -28,7 +28,7 @@ Item {
         const diffInsec = Math.floor((now - new Date(date)) / 1000)
 
         if(diffInsec < 0) return "Just now";
-        if(diffInsec < 60) return diffInsec + "secs ago"
+        if(diffInsec < 60) return diffInsec + " secs ago"
 
         const diffInMinutes = Math.floor(diffInsec / 60)
         if(diffInMinutes < 60) return diffInMinutes === 1 ? "1 minute ago" : diffInMinutes + " m ago"
@@ -47,7 +47,7 @@ Item {
         if(diffInDays < 365) return diffInMonths + " months  ago"
 
         const diffInYears = Math.floor(diffInDays / 365)
-        return diffInYears + "years ago";
+        return diffInYears === 1 ? "1 year ago " :  diffInYears + " years ago";
     }
 
     MultiEffect {
@@ -118,7 +118,6 @@ Item {
                     font.bold: true
                     font.pixelSize: 16
                     elide: Text.ElideRight
-                    // wrapMode: Text.Wrap
                     Layout.fillWidth: true
 
                     Behavior on color {
@@ -158,12 +157,10 @@ Item {
                     Layout.preferredWidth: 65
                     Layout.preferredHeight: 30
 
-                    buttonText: "⭐ Save"
+                    buttonText: repositoryData.isSaved ? "Saved" : "⭐ Save"
 
                     onButtonClicked: {
-                        // root.myrepoButtonClicked()
-                        // DB.collections.addCollection("QT");
-                        console.log("Save to db")
+                        repositoryController.toggleSave(repositoryData.index);
                     }
                 }
             }
@@ -247,7 +244,9 @@ Item {
 
                 Text {
                     visible: repositoryData && repositoryData.updatedAt
-                    text: repoCard.formatDate(repositoryData.updatedAt)
+                    text: repositoryData.isSaved
+                          ? repoCard.formatDate(repositoryData.savedAt)
+                          : repoCard.formatDate(repositoryData.updatedAt)
                     font.pixelSize: 12
                     color:theme.textTertiary
                     Behavior on color { ColorAnimation { duration: Theme.normalAnimation }}

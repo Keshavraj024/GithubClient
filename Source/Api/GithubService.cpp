@@ -52,7 +52,7 @@ RepositoryItem GitHubService::parseRepositoryJson(const QJsonObject &json)
     return repo;
 }
 
-void GitHubService::fetchUserRepositories(const QString &username, const QString &authToken)
+void GitHubService::fetchUserRepositories(const QString &username)
 {
     qDebug() << "Fetching User Repo 01";
     QString endpoint = QString("users/%1/repos").arg(username);
@@ -62,14 +62,15 @@ void GitHubService::fetchUserRepositories(const QString &username, const QString
     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
     request.setRawHeader("Accept", "application/vnd.github.v3+json");
 
-    if (!authToken.isEmpty()) {
-        request.setRawHeader("Authorization", QString("Bearer %1").arg(authToken).toUtf8());
-    }
+    // if (!authToken.isEmpty()) {
+    //     request.setRawHeader("Authorization", QString("Bearer %1").arg(authToken).toUtf8());
+    // }
 
+    qDebug() << "Fetching User Repo 01- 01";
     QNetworkReply *reply = m_networkManager->get(request);
     reply->setProperty("requestType", "userRepositories");
 
-    connect(reply, &QNetworkReply::finished, this, &GitHubService::onUserRepositoriesReceived);
+    connect(reply, &QNetworkReply::finished, this, &GitHubService::onUserRepositoriesFetched);
     connect(reply,
             QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
             this,
@@ -114,73 +115,51 @@ void GitHubService::fetchUserRepositories(const QString &username, const QString
 //     }
 // }
 
-// void GitHubService::searchRepositories(const QString &query,
-//                                        const QString &sort,
-//                                        const QString &order)
-// {
-//     if (m_isLoading || query.isEmpty()) {
-//         return;
-//     }
+void GitHubService::fetchRemoteRepositories(const QString &query,
+                                            const QString &sort,
+                                            const QString &order)
+{
+    qDebug() << "Fetching Remote Repo 01";
+    QUrl url(QString("https://api.github.com/search/repositories?q=%1&sort=%2&order=%3&per_page=50")
+                 .arg(query, sort, order));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
+    request.setRawHeader("Accept", "application/vnd.github.v3+json");
 
-//     setIsLoading(true);
-//     setErrorMessage(QString());
-//     clearRepositories();
+    // // TODO : if this field is not empty then it throws error
+    // if (!m_authToken.isEmpty()) {
+    //     request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
+    // }
 
-//     QUrl url(QString("https://api.github.com/search/repositories?q=%1&sort=%2&order=%3&per_page=50")
-//                  .arg(query, sort, order));
-//     QNetworkRequest request(url);
-//     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-//     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
-//     request.setRawHeader("Accept", "application/vnd.github.v3+json");
+    QNetworkReply *reply = m_networkManager->get(request);
+    reply->setProperty("requestType", "searchRepositories");
 
-//     // TODO : if this field is not empty then it throws error
-//     if (!m_authToken.isEmpty()) {
-//         request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
-//     }
+    connect(reply, &QNetworkReply::finished, this, &GitHubService ::onRemoteRepositoriesFetched);
+    connect(reply,
+            QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
+            this,
+            &GitHubService::requestFailed);
+}
 
-//     QNetworkReply *reply = m_networkManager->get(request);
-//     reply->setProperty("requestType", "searchRepositories");
+void GitHubService::fetchAuthenticatedUserRepositories(const QString &authToken)
+{
+    QUrl url(QString("https://api.github.com/user/repos?sort=updated&per_page=50&visibility=all"));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
+    request.setRawHeader("Accept", "application/vnd.github.v3+json");
+    request.setRawHeader("Authorization", QString("Bearer %1").arg(authToken).toUtf8());
 
-//     connect(reply, &QNetworkReply::finished, this, &GitHubService ::onSearchResultsReceived);
-//     connect(reply,
-//             QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
-//             this,
-//             &GitHubService::onRequestFailed);
-// }
+    QNetworkReply *reply = m_networkManager->get(request);
+    reply->setProperty("requestType", "userRepositories");
 
-// void GitHubService::fetchAuthenticatedUserRepositories()
-// {
-//     if (m_isLoading) {
-//         return;
-//     }
-
-//     if (m_authToken.isEmpty()) {
-//         qWarning() << "Token is not valid";
-//     }
-
-//     setIsLoading(true);
-//     setErrorMessage(QString());
-//     clearRepositories();
-
-//     QUrl url(QString("https://api.github.com/user/repos?sort=updated&per_page=50&visibility=all"));
-//     QNetworkRequest request(url);
-//     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-//     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
-//     request.setRawHeader("Accept", "application/vnd.github.v3+json");
-
-//     if (!m_authToken.isEmpty()) {
-//         request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
-//     }
-
-//     QNetworkReply *reply = m_networkManager->get(request);
-//     reply->setProperty("requestType", "userRepositories");
-
-//     connect(reply, &QNetworkReply::finished, this, &GitHubService ::onUserRepositoriesReceived);
-//     connect(reply,
-//             QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
-//             this,
-//             &GitHubService::onRequestFailed);
-// }
+    connect(reply, &QNetworkReply::finished, this, &GitHubService ::onUserRepositoriesFetched);
+    connect(reply,
+            QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
+            this,
+            &GitHubService::requestFailed);
+}
 
 // void GitHubService::fetchTrendingRepositories(const int days)
 // {
@@ -217,20 +196,16 @@ void GitHubService::fetchUserRepositories(const QString &username, const QString
 //             &GitHubService::onRequestFailed);
 // }
 
-void GitHubService::onUserRepositoriesReceived()
+void GitHubService::onUserRepositoriesFetched()
 {
     qDebug() << "Fetching User Repo 02";
+    emit loadingStatusChanged(false);
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
-    if (!reply) {
-        // setIsLoading(false);
-        // setErrorMessage("Invalid response received");
-        return;
-    }
 
-    // setIsLoading(false);
-
-    if (reply->error() != QNetworkReply::NoError) {
-        reply->deleteLater();
+    if (!reply || reply->error() != QNetworkReply::NoError) {
+        emit errorOccurred("Network error: " + (reply ? reply->errorString() : "Unknown"));
+        if (reply)
+            reply->deleteLater();
         return;
     }
 
@@ -239,17 +214,23 @@ void GitHubService::onUserRepositoriesReceived()
     QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
 
     if (parseError.error != QJsonParseError::NoError) {
-        // setErrorMessage(QString("JSON parsing error: %1").arg(parseError.errorString()));
+        emit errorOccurred(QString("JSON parsing error: %1").arg(parseError.errorString()));
         reply->deleteLater();
         return;
     }
     if (!doc.isArray()) {
-        // setErrorMessage("Expected JSON array for repository list");
+        emit errorOccurred("Expected JSON array for repository list");
         reply->deleteLater();
         return;
     }
 
     QJsonArray repositories = doc.array();
+
+    if (repositories.empty()) {
+        qWarning() << "Empty Repositories List";
+        return;
+    }
+
     QList<RepositoryItem> repoList;
 
     foreach (const auto &value, repositories) {
@@ -298,42 +279,48 @@ void GitHubService::onUserRepositoriesReceived()
 //     reply->deleteLater();
 // }
 
-// void GitHubService::onSearchResultsReceived()
-// {
-//     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
-//     if (!reply) {
-//         setIsLoading(false);
-//         setErrorMessage("Invalid response received");
-//         return;
-//     }
-//     setIsLoading(false);
-//     if (reply->error() != QNetworkReply::NoError) {
-//         reply->deleteLater();
-//         return;
-//     }
-//     QByteArray data = reply->readAll();
-//     QJsonParseError parseError;
-//     QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
-//     if (parseError.error != QJsonParseError::NoError) {
-//         setErrorMessage(QString("JSON parsing error: %1").arg(parseError.errorString()));
-//         reply->deleteLater();
-//         return;
-//     }
-//     if (!doc.isObject()) {
-//         setErrorMessage("Expected JSON object for search results");
-//         reply->deleteLater();
-//         return;
-//     }
-//     QJsonObject searchResults = doc.object();
-//     QJsonArray items = searchResults["items"].toArray();
-//     QVariantList repoList;
+void GitHubService::onRemoteRepositoriesFetched()
+{
+    qDebug() << "Fetching Remote Repo 02";
+    emit loadingStatusChanged(false);
+    QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
 
-//     foreach (const QJsonValue &value, items) {
-//         if (value.isObject()) {
-//             repoList.append(parseRepositoryJson(value.toObject()));
-//         }
-//     }
-//     m_repositories = repoList;
-//     emit repositoriesChanged();
-//     reply->deleteLater();
-// }
+    if (!reply || reply->error() != QNetworkReply::NoError) {
+        emit errorOccurred("Network error: " + (reply ? reply->errorString() : "Unknown"));
+
+        if (reply)
+            reply->deleteLater();
+        return;
+    }
+
+    QByteArray data = reply->readAll();
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        emit errorOccurred(QString("JSON parsing error: %1").arg(parseError.errorString()));
+        reply->deleteLater();
+        return;
+    }
+    if (!doc.isObject()) {
+        emit errorOccurred("Expected JSON object for search results");
+        reply->deleteLater();
+        return;
+    }
+    QJsonObject searchResults = doc.object();
+    QJsonArray items = searchResults["items"].toArray();
+
+    if (items.empty()) {
+        return;
+    }
+
+    QList<RepositoryItem> repoList;
+
+    foreach (const QJsonValue &value, items) {
+        if (value.isObject()) {
+            repoList.append(parseRepositoryJson(value.toObject()));
+        }
+    }
+    emit remoteRepositoriesFetched(repoList);
+    reply->deleteLater();
+    qDebug() << "Fetching Remote Repo DONE";
+}

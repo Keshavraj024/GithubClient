@@ -5,17 +5,21 @@
 RepositoryController::RepositoryController(QObject *parent)
     : QObject(parent)
 {
-    // 1. Initialize Storage with the default connection
     m_storage = std::make_unique<RepositoryStorage>(QSqlDatabase::database("github_connection"));
     m_gitService = new GitHubService(this);
 
     connect(m_gitService,
-            &GitHubService::userRepositoriesFetched,
+            &GitHubService::loadingStatusChanged,
             this,
-            &RepositoryController::onUserRepositoriesFetched);
+            &RepositoryController::setIsLoading);
 
-    // 2. Load initially saved items into the model at startup
-    refreshSavedItems();
+    connect(m_gitService,
+            &GitHubService::errorOccurred,
+            this,
+            &RepositoryController::setErrorMessage);
+
+    fetchRemoteRepositories("stars:>10000", "stars", "desc");
+    // refreshSavedItems();
 }
 
 RepositoryModel *RepositoryController::model()
@@ -38,7 +42,29 @@ void RepositoryController::fetchUserRepositories(const QString &username)
     setIsLoading(true);
     setErrorMessage(QString());
     m_model.clearSearch();
-    m_gitService->fetchUserRepositories(username, m_authToken);
+    m_gitService->fetchUserRepositories(username);
+
+    connect(m_gitService,
+            &GitHubService::userRepositoriesFetched,
+            this,
+            &RepositoryController::onUserRepositoriesFetched);
+}
+
+void RepositoryController::fetchAuthenticatedUserRepositories()
+{
+    if (m_isLoading || m_authToken.isEmpty()) {
+        setErrorMessage("Invalid Token");
+        return;
+    }
+    setIsLoading(true);
+    setErrorMessage(QString());
+    m_model.clearSearch();
+    m_gitService->fetchAuthenticatedUserRepositories(m_authToken);
+
+    connect(m_gitService,
+            &GitHubService::userRepositoriesFetched,
+            this,
+            &RepositoryController::onUserRepositoriesFetched);
 }
 
 void RepositoryController::onUserRepositoriesFetched(const QList<RepositoryItem> repoItems)
@@ -47,33 +73,49 @@ void RepositoryController::onUserRepositoriesFetched(const QList<RepositoryItem>
     QList<RepositoryItem> finalResults = repoItems;
     reconcileWithDatabase(finalResults);
     m_model.updateFromApi(finalResults);
-    setIsLoading(false);
+    emit modelCountChanged();
 }
 
-// void RepositoryController::search(const QString &query)
-// {
-//     if (query.isEmpty()) return;
+void RepositoryController::fetchRemoteRepositories(const QString &query,
+                                                   const QString &sort,
+                                                   const QString &order)
+{
+    if (m_isLoading || query.isEmpty()) {
+        return;
+    }
 
-//     // 1. Clear previous search results (but keep saved items)
-//     m_model.clearSearch();
+    qDebug() << "Fetching Remote Repo";
+    setIsLoading(true);
+    setErrorMessage(QString());
+    m_model.clearSearch();
+    m_gitService->fetchRemoteRepositories(query, sort, order);
 
-//     // 2. SIMULATED API CALL (Replace with your actual Network Manager logic)
-//     // For now, imagine 'results' is the list returned from GitHub
-//     QList<RepositoryItem> results;
+    connect(m_gitService,
+            &GitHubService::remoteRepositoriesFetched,
+            this,
+            &RepositoryController::onRemoteRepositoriesFetched);
+}
 
-//     // 3. Reconcile: Check if any of these API results are already in our DB
-//     reconcileWithDatabase(results);
-
-//     // 4. Update the Model
-//     m_model.updateFromApi(results);
-// }
+void RepositoryController::onRemoteRepositoriesFetched(const QList<RepositoryItem> repoItems)
+{
+    qDebug() << "Fetching User Repo 03" << repoItems[0].id;
+    QList<RepositoryItem> finalResults = repoItems;
+    reconcileWithDatabase(finalResults);
+    m_model.updateFromApi(finalResults);
+    emit modelCountChanged();
+}
 
 void RepositoryController::reconcileWithDatabase(QList<RepositoryItem> &apiResults)
 {
+    QMap<qlonglong, QString> savedDates = m_storage->getAllSavedDates();
+
     for (auto &item : apiResults) {
-        if (m_storage->exists(item.id)) {
+        if (savedDates.contains(item.id)) {
             item.isLocallySaved = true;
-            // You could also load the specific saved date if needed
+            item.savedAt = savedDates.value(item.id);
+        } else {
+            item.isLocallySaved = false;
+            item.savedAt = "";
         }
     }
 }
@@ -88,28 +130,30 @@ void RepositoryController::setIsLoading(bool loading)
 
 void RepositoryController::setErrorMessage(const QString &message)
 {
-    if (!message.isEmpty()) {
-        m_errorMessage = message;
-        emit errorMessageChanged();
-    }
+    if (m_errorMessage == message)
+        return;
+
+    m_errorMessage = message;
+
+    emit modelCountChanged();
+    emit errorMessageChanged();
 }
 
 void RepositoryController::toggleSave(int index)
 {
-    // Get a reference to the item in the model's list
     RepositoryItem &item = m_model.getItem(index);
 
     if (!item.isLocallySaved) {
-        // ACTION: SAVE
         if (m_storage->saveRepo(item)) {
             item.isLocallySaved = true;
+            item.savedAt = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
             m_model.notifyRowChanged(index);
             qDebug() << "Saved repo:" << item.fullName;
         }
     } else {
-        // ACTION: REMOVE
         if (m_storage->removeRepo(item.id)) {
             item.isLocallySaved = false;
+            item.savedAt = "";
             m_model.notifyRowChanged(index);
             qDebug() << "Removed repo:" << item.fullName;
         }
@@ -158,9 +202,15 @@ void RepositoryController::onRequestFailed(QNetworkReply::NetworkError error)
         break;
     }
     setErrorMessage(errorMsg);
+
     qWarning() << "GitHub API request failed:" << errorMsg;
 
     if (reply) {
         reply->deleteLater();
     }
+}
+
+size_t RepositoryController::modelCount() const
+{
+    return m_model.rowCount();
 }

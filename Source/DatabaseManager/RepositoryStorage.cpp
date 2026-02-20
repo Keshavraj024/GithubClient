@@ -13,36 +13,41 @@ bool RepositoryStorage::saveRepo(const RepositoryItem &item)
     if (!m_db.transaction())
         return false;
 
-    QSqlQuery query(m_db);
+    // Use a fresh query for users
+    QSqlQuery userQuery(m_db);
+    userQuery.prepare("INSERT OR REPLACE INTO users (id, login, avatar_url, html_url, type) "
+                      "VALUES (:id, :login, :avatar, :url, :type)");
+    userQuery.bindValue(":id", item.owner.id);
+    userQuery.bindValue(":login", item.owner.login);
+    userQuery.bindValue(":avatar", item.owner.avatarUrl);
+    userQuery.bindValue(":url", item.owner.htmlUrl);
+    userQuery.bindValue(":type", item.owner.type);
 
-    // Save User first
-    query.prepare("INSERT OR REPLACE INTO users (id, login, avatar_url, html_url, type) "
-                  "VALUES (?, ?, ?, ?, ?)");
-    query.addBindValue(item.owner.id);
-    query.addBindValue(item.owner.login);
-    query.addBindValue(item.owner.avatarUrl);
-    query.addBindValue(item.owner.htmlUrl);
-    query.addBindValue(item.owner.type);
-
-    if (!query.exec()) {
+    if (!userQuery.exec()) {
+        qDebug() << "User Error:" << userQuery.lastError().text();
         m_db.rollback();
         return false;
     }
 
-    // Save Repo referencing User
-    query.prepare("INSERT OR REPLACE INTO saved_repositories "
-                  "(id, full_name, description, stars, forks, language, html_url, owner_id) "
-                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-    query.addBindValue(item.id);
-    query.addBindValue(item.fullName);
-    query.addBindValue(item.description);
-    query.addBindValue(item.stars);
-    query.addBindValue(item.forks);
-    query.addBindValue(item.language);
-    query.addBindValue(item.htmlUrl);
-    query.addBindValue(item.owner.id);
+    // Use a fresh query (or clear the old one) for repos
+    QSqlQuery repoQuery(m_db);
+    repoQuery.prepare(
+        "INSERT OR REPLACE INTO saved_repositories "
+        "(id, full_name, description, stars, forks, language, html_url, collection_id, owner_id) "
+        "VALUES (:id, :name, :desc, :stars, :forks, :lang, :url, :coll, :owner)");
 
-    if (!query.exec()) {
+    repoQuery.bindValue(":id", item.id);
+    repoQuery.bindValue(":name", item.fullName);
+    repoQuery.bindValue(":desc", item.description);
+    repoQuery.bindValue(":stars", item.stars);
+    repoQuery.bindValue(":forks", item.forks);
+    repoQuery.bindValue(":lang", item.language);
+    repoQuery.bindValue(":url", item.htmlUrl);
+    repoQuery.bindValue(":coll", 0);
+    repoQuery.bindValue(":owner", item.owner.id);
+
+    if (!repoQuery.exec()) {
+        qDebug() << "Repo Error:" << repoQuery.lastError().text();
         m_db.rollback();
         return false;
     }
@@ -69,6 +74,7 @@ QList<RepositoryItem> RepositoryStorage::loadAll()
         item.forks = query.value("forks").toInt();
         item.language = query.value("language").toString();
         item.htmlUrl = query.value("html_url").toString();
+        item.savedAt = query.value("saved_at").toString();
         item.isLocallySaved = true;
 
         item.owner.id = query.value("owner_id").toLongLong();
@@ -96,4 +102,25 @@ bool RepositoryStorage::exists(qint64 repoId)
     query.prepare("SELECT id FROM saved_repositories WHERE id = ?");
     query.addBindValue(repoId);
     return query.exec() && query.next();
+}
+
+QMap<qlonglong, QString> RepositoryStorage::getAllSavedDates()
+{
+    QSqlQuery query(m_db);
+    query.prepare("SELECT id, saved_at FROM saved_repositories");
+
+    QMap<qlonglong, QString> result;
+
+    if (query.exec()) {
+        while (query.next()) {
+            // Using index numbers (0, 1) is slightly faster than string names
+            qlonglong id = query.value(0).toLongLong();
+            QString savedDate = query.value(1).toString();
+            result.insert(id, savedDate);
+        }
+    } else {
+        qDebug() << "Database Error:" << query.lastError().text();
+    }
+
+    return result;
 }

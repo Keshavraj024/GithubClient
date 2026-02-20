@@ -35,6 +35,7 @@ qt_add_qml_module(GithubClient
             UI/Components/LoadingOverlay.qml
             UI/Components/Header.qml
             UI/Components/ToolBar.qml
+            UI/Components/ErrorPopup.qml
 
             UI/Controls/ColorBehavior.qml
 
@@ -48,13 +49,6 @@ qt_add_qml_module(GithubClient
             Assets/images/sun.png
             Assets/images/moon.png
             Assets/icons/search.png
-            QML_FILES UI/Components/ErrorPopup.qml
-            SOURCES Include/Repository/RepositoryItem.h
-            SOURCES Include/User/UserData.h
-            SOURCES Include/DatabaseManager/RepositoryStorage.h
-            SOURCES Source/DatabaseManager/RepositoryStorage.cpp
-            SOURCES Include/Repository/RepositoryController.h
-            SOURCES Source/Repository/RepositoryController.cpp
         )
 
 

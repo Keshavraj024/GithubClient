@@ -54,7 +54,7 @@ Item {
 
             CustomButton {
                 id: myRepoBtn
-                visible: githubService.authToken.length > 0
+                visible: repositoryController.authToken.length > 0
 
                 Layout.preferredWidth: 100
                 Layout.preferredHeight: 30

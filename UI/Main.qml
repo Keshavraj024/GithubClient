@@ -18,7 +18,7 @@ Window {
     property string currentView: "repositories" // "repositories", "search", "user", "myrepos"
     property string latestQuery: ""
     property string latestUserName: ""
-    property date lastUpdated
+    property date lastUpdated : new Date()
 
     Component {
         id: emptyStateComponent
@@ -29,23 +29,25 @@ Window {
 
     Component {
         id: gridViewComponent
+
         GridView {
             id: repositoryGrid
 
             Layout.margins: 10
             clip: true
 
-            model: githubService.model
+            model: repositoryController.model
             cellWidth: Math.floor(repositoryGrid.width / Math.max(1, Math.floor(repositoryGrid.width / 380)))
             cellHeight: 180
 
-            Component.onCompleted: console.log(model)
-
             delegate: RepoCard {
                 required property var modelData
+
                 width: repositoryGrid.cellWidth
                 height: repositoryGrid.cellHeight
                 repositoryData: modelData
+
+                // visible: !modelData.isSaved
                 onClicked: {
                     if (repositoryData.htmlUrl) {
                         Qt.openUrlExternally(repositoryData.htmlUrl)
@@ -58,22 +60,22 @@ Window {
     Component {
         id: loadingComponent
         LoadingOverlay {
-            isLoading: githubService.isLoading
+            isLoading: repositoryController.isLoading
         }
     }
 
     Component {
         id: popupComponent
         ErrorPopup {
-            message: githubService.errorMessage
+            message: repositoryController.errorMessage
         }
     }
 
     RepositoryController {
-        id: githubService
-        // onRepositoriesChanged: {
-        //     lastUpdated = new Date()
-        // }
+        id: repositoryController
+        onModelCountChanged: {
+            root.lastUpdated = new Date()
+        }
     }
 
     Rectangle {
@@ -104,17 +106,17 @@ Window {
 
             onSearchRequested: function(repositoryName) {
                 root.latestQuery = repositoryName
-                githubService.searchRepositories(repositoryName)
+                repositoryController.fetchRemoteRepositories(repositoryName)
                 root.currentView = "search"
             }
             onSearchUserRequested: function(userName) {
                 root.latestUserName = userName
-                githubService.fetchUserRepositories(userName)
+                repositoryController.fetchUserRepositories(userName)
                 root.currentView = "user"
             }
 
             onTokenChanged: function(token) {
-                githubService.authToken = token
+                repositoryController.authToken = token
             }
 
 
@@ -129,7 +131,7 @@ Window {
 
             onPopularButtonClicked: {
                 root.currentView = "repositories"
-                githubService.searchRepositories("stars:>10000", "stars", "desc")
+                repositoryController.fetchRemoteRepositories("stars:>10000", "stars", "desc")
             }
 
             onRefreshButtonClicked : {
@@ -137,23 +139,23 @@ Window {
                 switch (root.currentView) {
                 case "user":
                     if (root.latestUserName.length > 0)
-                        githubService.fetchUserRepositories(root.latestUserName)
+                        repositoryController.fetchUserRepositories(root.latestUserName)
                     break
                 case "search":
                     if (root.latestQuery.length > 0)
-                        githubService.searchRepositories(root.latestQuery)
+                        repositoryController.searchRepositories(root.latestQuery)
                     break
                 case "myrepos":
-                    githubService.fetchAuthenticatedUserRepositories()
+                    repositoryController.fetchAuthenticatedUserRepositories()
                     break
                 default:
-                    githubService.searchRepositories("stars:>10000", "stars", "desc")
+                    repositoryController.searchRepositories("stars:>10000", "stars", "desc")
 
                 }
             }
 
             onMyrepoButtonClicked : {
-                githubService.fetchAuthenticatedUserRepositories()
+                repositoryController.fetchAuthenticatedUserRepositories()
                 root.currentView = "myrepos"
                 root.latestQuery = ""
                 root.latestUserName = ""
@@ -167,18 +169,20 @@ Window {
             Layout.fillHeight: true
 
             Loader {
+                id: myLoader
                 anchors.fill: contentArea
-                sourceComponent: gridViewComponent
-                // sourceComponent: {
-                //     if (githubService.isLoading)
-                //         return loadingComponent
-                //     else if(githubService.errorMessage.length > 0 && !githubService.isLoading)
-                //         return popupComponent
-                //     else if ((githubService.repositories.length) === 0)
-                //         return emptyStateComponent
-                //     else
-                //         return gridViewComponent
-                // }
+                // sourceComponent: gridViewComponent
+                sourceComponent: {
+                    if (repositoryController.isLoading)
+                        return loadingComponent
+                    else if(repositoryController.errorMessage.length > 0 && !repositoryController.isLoading)
+                        return popupComponent
+                    else if (repositoryController.modelCount === 0)
+                        return emptyStateComponent
+                    else
+                        return gridViewComponent
+                }
+
             }
         }
 
@@ -186,10 +190,10 @@ Window {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
 
-            repositoriesCount: githubService.repositories.length
+            repositoriesCount: repositoryController.modelCount
             currentView:  root.currentView
             lastUpdate: root.lastUpdated
-            isLoading: githubService.isLoading
+            isLoading: repositoryController.isLoading
         }
     }
 

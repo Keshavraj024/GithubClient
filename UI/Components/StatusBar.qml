@@ -7,7 +7,7 @@ import GithubClient 1.0
 Item {
     id: root
 
-    property int repositoriesCount: 0
+    property int repositoriesCount
     property string currentView:  "Repositories"
     property date lastUpdate: new Date()
     property bool isLoading: false

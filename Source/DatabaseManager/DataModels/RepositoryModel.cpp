@@ -105,7 +105,6 @@ void RepositoryModel::updateFromApi(const QList<RepositoryItem> &apiResults)
             emit dataChanged(index(row), index(row));
         } else {
             beginInsertRows(QModelIndex(), m_repos.size(), m_repos.size());
-            qDebug() << "Inserting items";
             m_repos.append(newItem);
             endInsertRows();
         }
@@ -123,6 +122,7 @@ void RepositoryModel::loadFromDatabase(const QList<RepositoryItem> &dbResults)
 
 void RepositoryModel::clearSearch()
 {
+    qDebug() << m_repos.size();
     for (int i = m_repos.size() - 1; i >= 0; --i) {
         if (!m_repos[i].isLocallySaved) {
             beginRemoveRows(QModelIndex(), i, i);
@@ -130,6 +130,7 @@ void RepositoryModel::clearSearch()
             endRemoveRows();
         }
     }
+    qDebug() << "remove";
 }
 
 RepositoryItem &RepositoryModel::getItem(int row)
