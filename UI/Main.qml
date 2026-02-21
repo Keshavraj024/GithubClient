@@ -53,6 +53,11 @@ Window {
                         Qt.openUrlExternally(repositoryData.htmlUrl)
                     }
                 }
+
+                onSaveButtonClicked: function(index) {
+                    saveDialog.targetRepoIndex = index
+                    saveDialog.open()
+                }
             }
         }
     }
@@ -76,6 +81,11 @@ Window {
         onModelCountChanged: {
             root.lastUpdated = new Date()
         }
+    }
+
+    SaveDialog {
+        anchors.centerIn: parent
+        id: saveDialog
     }
 
     Rectangle {

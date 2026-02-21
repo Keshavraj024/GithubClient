@@ -10,6 +10,7 @@ Item {
 
     // height: 160
     signal clicked()
+    signal saveButtonClicked(int index)
 
     required property var repositoryData
     readonly property QtObject theme: Theme.palette
@@ -160,7 +161,7 @@ Item {
                     buttonText: repositoryData.isSaved ? "Saved" : "⭐ Save"
 
                     onButtonClicked: {
-                        repositoryController.toggleSave(repositoryData.index);
+                        repoCard.saveButtonClicked(repositoryData.index);
                     }
                 }
             }

@@ -1,5 +1,7 @@
 #pragma once
 #include <QObject>
+#include "CollectionModel.h"
+#include "CollectionStorage.h"
 #include "GithubService.h"
 #include "RepositoryModel.h"
 #include "RepositoryStorage.h"
@@ -15,6 +17,7 @@ class RepositoryController : public QObject
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
     Q_PROPERTY(size_t modelCount READ modelCount NOTIFY modelCountChanged)
     Q_PROPERTY(RepositoryModel *model READ model CONSTANT)
+    Q_PROPERTY(const CollectionModel *collectionModel READ collectionModel CONSTANT)
 
 public:
     explicit RepositoryController(QObject *parent = nullptr);
@@ -33,8 +36,11 @@ public:
     Q_INVOKABLE void fetchAuthenticatedUserRepositories();
     // Q_INVOKABLE void fetchTrendingRepositories(const int days = 7);
 
-    Q_INVOKABLE void toggleSave(int index);
+    Q_INVOKABLE void toggleSave(int index, const size_t collectionIdx = 0);
     Q_INVOKABLE void refreshSavedItems();
+
+    Q_INVOKABLE int createCollection(const QString &name);
+    Q_INVOKABLE void removeFromCollections(const int id);
 
     void setAuthToken(const QString &newAuthToken);
 
@@ -43,6 +49,8 @@ public:
     QString errorMessage() const;
 
     size_t modelCount() const;
+
+    const CollectionModel *collectionModel() const;
 
 signals:
     void authTokenChanged();
@@ -60,8 +68,13 @@ private slots:
     void onRequestFailed(QNetworkReply::NetworkError error);
 
 private:
-    RepositoryModel m_model;
-    std::unique_ptr<RepositoryStorage> m_storage;
+    RepositoryModel m_repomodel;
+    std::unique_ptr<RepositoryStorage> m_repostorage;
+
+    CollectionModel m_collectionModel;
+    std::unique_ptr<CollectionStorage> m_collectionstorage;
+    void loadCollections();
+
     GitHubService *m_gitService;
 
     // Internal helper to sync DB status with API results

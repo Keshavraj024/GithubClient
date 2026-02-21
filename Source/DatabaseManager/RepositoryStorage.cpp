@@ -8,7 +8,7 @@ RepositoryStorage::RepositoryStorage(QSqlDatabase db)
     : m_db(db)
 {}
 
-bool RepositoryStorage::saveRepo(const RepositoryItem &item)
+bool RepositoryStorage::saveRepo(const RepositoryItem &item, const size_t collectionIdx)
 {
     if (!m_db.transaction())
         return false;
@@ -43,7 +43,7 @@ bool RepositoryStorage::saveRepo(const RepositoryItem &item)
     repoQuery.bindValue(":forks", item.forks);
     repoQuery.bindValue(":lang", item.language);
     repoQuery.bindValue(":url", item.htmlUrl);
-    repoQuery.bindValue(":coll", 0);
+    repoQuery.bindValue(":coll", collectionIdx);
     repoQuery.bindValue(":owner", item.owner.id);
 
     if (!repoQuery.exec()) {

@@ -13,7 +13,7 @@ public:
     bool initSchema();
 
     // Database Actions
-    bool saveRepo(const RepositoryItem &item);
+    bool saveRepo(const RepositoryItem &item, const size_t collectionIdx);
     bool removeRepo(qint64 repoId);
     QList<RepositoryItem> loadAll();
 

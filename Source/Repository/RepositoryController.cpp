@@ -5,7 +5,13 @@
 RepositoryController::RepositoryController(QObject *parent)
     : QObject(parent)
 {
-    m_storage = std::make_unique<RepositoryStorage>(QSqlDatabase::database("github_connection"));
+    m_repostorage = std::make_unique<RepositoryStorage>(
+        QSqlDatabase::database("github_connection"));
+
+    m_collectionstorage = std::make_unique<CollectionStorage>(QSqlDatabase::database(
+                                                                  "github_connection"),
+                                                              this);
+
     m_gitService = new GitHubService(this);
 
     connect(m_gitService,
@@ -20,17 +26,42 @@ RepositoryController::RepositoryController(QObject *parent)
 
     fetchRemoteRepositories("stars:>10000", "stars", "desc");
     // refreshSavedItems();
+
+    loadCollections();
 }
 
 RepositoryModel *RepositoryController::model()
 {
-    return &m_model;
+    return &m_repomodel;
 }
 
 void RepositoryController::refreshSavedItems()
 {
-    QList<RepositoryItem> saved = m_storage->loadAll();
-    m_model.loadFromDatabase(saved);
+    QList<RepositoryItem> saved = m_repostorage->loadAll();
+    m_repomodel.loadFromDatabase(saved);
+}
+
+int RepositoryController::createCollection(const QString &name)
+{
+    const int id = m_collectionstorage->addCollection(name);
+
+    CollectionItem lastInsertedItem = m_collectionstorage->fetchById(id);
+
+    m_collectionModel.appendCollection(lastInsertedItem);
+
+    return id;
+}
+
+void RepositoryController::removeFromCollections(const int id)
+{
+    m_collectionstorage->removeCollection(id);
+    m_collectionModel.removeCollectionFromModel(id);
+}
+
+void RepositoryController::loadCollections()
+{
+    QList<CollectionItem> collectionItems = m_collectionstorage->fetchAll();
+    m_collectionModel.setCollections(collectionItems);
 }
 
 void RepositoryController::fetchUserRepositories(const QString &username)
@@ -41,7 +72,7 @@ void RepositoryController::fetchUserRepositories(const QString &username)
     qDebug() << "Fetching User Repo";
     setIsLoading(true);
     setErrorMessage(QString());
-    m_model.clearSearch();
+    m_repomodel.clearSearch();
     m_gitService->fetchUserRepositories(username);
 
     connect(m_gitService,
@@ -58,7 +89,7 @@ void RepositoryController::fetchAuthenticatedUserRepositories()
     }
     setIsLoading(true);
     setErrorMessage(QString());
-    m_model.clearSearch();
+    m_repomodel.clearSearch();
     m_gitService->fetchAuthenticatedUserRepositories(m_authToken);
 
     connect(m_gitService,
@@ -72,7 +103,7 @@ void RepositoryController::onUserRepositoriesFetched(const QList<RepositoryItem>
     qDebug() << "Fetching User Repo 03" << repoItems[0].id;
     QList<RepositoryItem> finalResults = repoItems;
     reconcileWithDatabase(finalResults);
-    m_model.updateFromApi(finalResults);
+    m_repomodel.updateFromApi(finalResults);
     emit modelCountChanged();
 }
 
@@ -87,7 +118,7 @@ void RepositoryController::fetchRemoteRepositories(const QString &query,
     qDebug() << "Fetching Remote Repo";
     setIsLoading(true);
     setErrorMessage(QString());
-    m_model.clearSearch();
+    m_repomodel.clearSearch();
     m_gitService->fetchRemoteRepositories(query, sort, order);
 
     connect(m_gitService,
@@ -101,13 +132,13 @@ void RepositoryController::onRemoteRepositoriesFetched(const QList<RepositoryIte
     qDebug() << "Fetching User Repo 03" << repoItems[0].id;
     QList<RepositoryItem> finalResults = repoItems;
     reconcileWithDatabase(finalResults);
-    m_model.updateFromApi(finalResults);
+    m_repomodel.updateFromApi(finalResults);
     emit modelCountChanged();
 }
 
 void RepositoryController::reconcileWithDatabase(QList<RepositoryItem> &apiResults)
 {
-    QMap<qlonglong, QString> savedDates = m_storage->getAllSavedDates();
+    QMap<qlonglong, QString> savedDates = m_repostorage->getAllSavedDates();
 
     for (auto &item : apiResults) {
         if (savedDates.contains(item.id)) {
@@ -139,22 +170,22 @@ void RepositoryController::setErrorMessage(const QString &message)
     emit errorMessageChanged();
 }
 
-void RepositoryController::toggleSave(int index)
+void RepositoryController::toggleSave(int index, const size_t collectionIdx)
 {
-    RepositoryItem &item = m_model.getItem(index);
+    RepositoryItem &item = m_repomodel.getItem(index);
 
     if (!item.isLocallySaved) {
-        if (m_storage->saveRepo(item)) {
+        if (m_repostorage->saveRepo(item, collectionIdx)) {
             item.isLocallySaved = true;
             item.savedAt = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            m_model.notifyRowChanged(index);
+            m_repomodel.notifyRowChanged(index);
             qDebug() << "Saved repo:" << item.fullName;
         }
     } else {
-        if (m_storage->removeRepo(item.id)) {
+        if (m_repostorage->removeRepo(item.id)) {
             item.isLocallySaved = false;
             item.savedAt = "";
-            m_model.notifyRowChanged(index);
+            m_repomodel.notifyRowChanged(index);
             qDebug() << "Removed repo:" << item.fullName;
         }
     }
@@ -212,5 +243,10 @@ void RepositoryController::onRequestFailed(QNetworkReply::NetworkError error)
 
 size_t RepositoryController::modelCount() const
 {
-    return m_model.rowCount();
+    return m_repomodel.rowCount();
+}
+
+const CollectionModel *RepositoryController::collectionModel() const
+{
+    return &m_collectionModel;
 }

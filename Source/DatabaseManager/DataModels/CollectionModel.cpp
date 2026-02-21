@@ -2,11 +2,10 @@
 #include <QDebug>
 #include <QSqlError>
 
-CollectionModel::CollectionModel(QSqlDatabase db, QObject *parent)
+CollectionModel::CollectionModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_db(db)
 {
-    refresh();
+    
 }
 
 int CollectionModel::rowCount(const QModelIndex &parent) const
@@ -44,66 +43,28 @@ QVariant CollectionModel::data(const QModelIndex &index, int role) const
     }
 }
 
-void CollectionModel::refresh()
+void CollectionModel::setCollections(const QList<CollectionItem> &collections)
 {
     beginResetModel();
-    m_collections.clear();
-
-    QSqlQuery query(m_db);
-    query.prepare("SELECT id, name, created_at FROM collections");
-
-    if (query.exec()) {
-        while (query.next()) {
-            m_collections.append(
-                {query.value(0).toInt(), query.value(1).toString(), query.value(2).toString()});
-        }
-    } else {
-        qWarning() << "Fetch collections failed:" << query.lastError().text();
-    }
+    m_collections = collections;
     endResetModel();
 }
 
-void CollectionModel::addCollection(const QString &name)
+void CollectionModel::appendCollection(const CollectionItem &item)
 {
-    QSqlQuery query(m_db);
-    query.prepare("INSERT INTO collections (name) VALUES (:name)");
-    query.bindValue(":name", name);
-
-    if (query.exec()) {
-        int newId = query.lastInsertId().toInt();
-
-        QSqlQuery syncQuery(m_db);
-        syncQuery.prepare("SELECT id, name, created_at FROM collections WHERE id = :id");
-        syncQuery.bindValue(":id", newId);
-
-        if (syncQuery.exec() && syncQuery.next()) {
-            beginInsertRows(QModelIndex(), m_collections.count(), m_collections.count());
-
-            m_collections.append({syncQuery.value(0).toInt(),
-                                  syncQuery.value(1).toString(),
-                                  syncQuery.value(2).toString()});
-            endInsertRows();
-        }
-    } else {
-        qWarning() << "Insert failed:" << query.lastError().text();
-        // TODO : Here you could emit a signal 'errorOccurred(QString)' to show a popup in QML
-    }
+    beginInsertRows(QModelIndex(), m_collections.count(), m_collections.count());
+    m_collections.append(item);
+    endInsertRows();
 }
 
-void CollectionModel::removeCollection(int id)
+void CollectionModel::removeCollectionFromModel(int id)
 {
-    QSqlQuery query(m_db);
-    query.prepare("DELETE FROM collections WHERE id = :id");
-    query.bindValue(":id", id);
-
-    if (query.exec()) {
-        for (int collectionIdx = 0; collectionIdx < m_collections.count(); ++collectionIdx) {
-            if (m_collections[collectionIdx].id == id) {
-                beginRemoveRows(QModelIndex(), collectionIdx, collectionIdx);
-                m_collections.removeAt(collectionIdx);
-                endRemoveRows();
-                break;
-            }
+    for (int i = 0; i < m_collections.count(); ++i) {
+        if (m_collections[i].id == id) {
+            beginRemoveRows(QModelIndex(), i, i);
+            m_collections.removeAt(i);
+            endRemoveRows();
+            break;
         }
     }
 }
