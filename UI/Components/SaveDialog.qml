@@ -2,106 +2,158 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Dialog {
-    id: saveToCollectionDialog
+import "../Customs"
+
+Popup {
+    id: saveToCollectionPopup
     modal: true
-    standardButtons: Dialog.Save | Dialog.Cancel
-    closePolicy: Popup.NoAutoClose
+    focus: true
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    width: 500
-    height: 250
+    // Centering the popup in the parent window
+    anchors.centerIn: Overlay.overlay
 
-    Component.onCompleted: console.log(availableWidth)
+    width: 400
+    height: 325
+    padding: 20
 
-    padding: 10
-
-    spacing: -1
-
-    // We store the index of the repository we want to save
+    // Properties inherited from your previous logic
     property int targetRepoIndex: -1
 
     background: Rectangle {
         color: Theme.palette.background
-        radius: 10
-        border{
-            width: 5
+        radius: 12
+        border {
+            width: 2
             color: Theme.palette.borderLight
         }
-    }
-
-    header: Rectangle {
-        height: 50
-        color: Theme.palette.background
-        radius: 10
-        border{
-            width: 5
-            color: Theme.palette.borderLight
-        }
-        Label {
-            anchors.centerIn: parent
-            text: "Save to Collection"
-            color: Theme.palette.textPrimary
-            font.bold: true
-            font.pixelSize: 20
-        }
+        // Shadow effect (Optional, adds depth)
+        layer.enabled: true
     }
 
     contentItem: ColumnLayout {
         spacing: 10
-        anchors.margins: 10
 
         Label {
-            text: "Select a Collection:"
-            color: Theme.palette.textPrimary
+            text: "Save to Collection"
+            font.pixelSize: 22
             font.bold: true
+            color: Theme.palette.textPrimary
+            Layout.alignment: Qt.AlignHCenter
+            Layout.bottomMargin: 10
+        }
+
+        // --- Selection Logic ---
+        ColumnLayout {
+            spacing: 5
+            Layout.fillWidth: true
+
+            Label {
+                text: "Select a Collection:"
+                color: Theme.palette.textSecondary
+                font.pixelSize: 18
+            }
+
+            ComboBox {
+                id: collectionSelector
+                Layout.fillWidth: true
+                Layout.preferredHeight: 28
+                model: repositoryController.collectionModel
+                textRole: "name"
+
+                background: Rectangle {
+                    color: Theme.palette.background
+                    radius: 2
+                    border {
+                        width: 2
+                        color: Theme.palette.borderLight
+                    }
+                }
+            }
+        }
+
+        Label {
+            text: "— OR —"
+            Layout.alignment: Qt.AlignHCenter
+            color: Theme.palette.textSecondary
             font.pixelSize: 18
         }
 
-        ComboBox {
-            id: collectionSelector
+        ColumnLayout {
+            spacing: 5
             Layout.fillWidth: true
-            model: repositoryController.collectionModel
-            textRole: "name"  // Matches the role in your CollectionModel
+
+            Label {
+                text: "Create New Collection:"
+                color: Theme.palette.textSecondary
+                font.pixelSize: 18
+            }
+
+            TextField {
+                id: newCollectionInput
+                Layout.fillWidth: true
+                Layout.preferredHeight: 28
+                placeholderText: "Enter name..."
+                selectByMouse: true
+                color: Theme.palette.textPrimary
+
+                background: Rectangle {
+                    color: Theme.palette.background
+                    radius: 2
+                    border {
+                        width: 2
+                        color: Theme.palette.borderLight
+                    }
+                }
+            }
         }
 
-        Label {
-            text: "Or Create New:"
-            color: Theme.palette.textPrimary
-            font.bold: true
-            font.pixelSize: 18
-        }
-
-        TextField {
-            id: newCollectionInput
+        RowLayout {
             Layout.fillWidth: true
-            placeholderText: "Enter new collection name"
+            spacing: 10
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            CustomButton {
+                buttonText: "Save"
+                Layout.preferredWidth: 65
+                Layout.preferredHeight: 30
+                enabled: newCollectionInput.text.trim() !== "" || collectionSelector.currentIndex !== -1
+                onButtonClicked: handleSave()
+            }
+
+            CustomButton {
+                buttonText: "Cancel"
+                Layout.preferredWidth: 65
+                Layout.preferredHeight: 30
+                onButtonClicked: {
+                    newCollectionInput.clear();
+                    saveToCollectionPopup.close();
+                }
+            }
         }
     }
 
-    onAccepted: {
+    function handleSave() {
         let finalCollectionId = -1;
         let newName = newCollectionInput.text.trim();
 
         if (newName !== "") {
-            // Logic 1: Create new collection first
-            // Your controller should return the ID of the newly created collection
             finalCollectionId = repositoryController.createCollection(newName);
         } else if (collectionSelector.currentIndex !== -1) {
-            // Logic 2: Use existing selected ID
-            // Assuming your model has an 'id' role
+            // Updated access logic for cleaner reading
             finalCollectionId = collectionSelector.model.data(
                         collectionSelector.model.index(collectionSelector.currentIndex, 0),
-                        Qt.UserRole + 1 // Or whatever your ID role is
+                        Qt.UserRole + 1
                         );
         }
 
         if (finalCollectionId !== -1) {
-            // repositoryController.toggleSave(targetRepoIndex, finalCollectionId);
+            repositoryController.toggleSave(targetRepoIndex, finalCollectionId);
             newCollectionInput.clear();
+            saveToCollectionPopup.close();
         }
-    }
-
-    onRejected: {
-        newCollectionInput.clear();
     }
 }

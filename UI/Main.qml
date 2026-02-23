@@ -56,7 +56,10 @@ Window {
 
                 onSaveButtonClicked: function(index) {
                     saveDialog.targetRepoIndex = index
-                    saveDialog.open()
+                    if(!modelData.isSaved)
+                        saveDialog.open()
+                    else
+                        repositoryController.toggleSave(index)
                 }
             }
         }
@@ -153,13 +156,13 @@ Window {
                     break
                 case "search":
                     if (root.latestQuery.length > 0)
-                        repositoryController.searchRepositories(root.latestQuery)
+                        repositoryController.fetchRemoteRepositories(root.latestQuery)
                     break
                 case "myrepos":
                     repositoryController.fetchAuthenticatedUserRepositories()
                     break
                 default:
-                    repositoryController.searchRepositories("stars:>10000", "stars", "desc")
+                    repositoryController.fetchRemoteRepositories("stars:>10000", "stars", "desc")
 
                 }
             }
@@ -181,7 +184,6 @@ Window {
             Loader {
                 id: myLoader
                 anchors.fill: contentArea
-                // sourceComponent: gridViewComponent
                 sourceComponent: {
                     if (repositoryController.isLoading)
                         return loadingComponent

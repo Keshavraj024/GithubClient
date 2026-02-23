@@ -152,7 +152,15 @@ Item {
                     Layout.preferredWidth: githubServiceText.implicitWidth + 15
                     Layout.preferredHeight: githubServiceText.implicitHeight + 10
                     radius: 15
-                    color: Qt.lighter(Theme.success, 1.3)
+                    color: {
+                        switch(repositoryController.githubStatus) {
+                        case "none": return Theme.success
+                        case "minor": return Theme.warning
+                        case "major" : return Theme.error
+                        default: return Theme.info
+                        }
+                    }
+
                     border {
                         color: Theme.accent
                         width: 1
@@ -172,10 +180,12 @@ Item {
                     Text {
                         id: githubServiceText
                         anchors.centerIn: parent
-                        text: "Github API Connected"
+
+                        text: "GitHub: " + repositoryController.githubDesc
                         font.pixelSize: 12
                         font.weight: Font.Bold
-                        color: Theme.palette.textTertiary
+
+                        color: Theme.palette.textPrimary
 
                         ColorBehavior on color {}
                     }

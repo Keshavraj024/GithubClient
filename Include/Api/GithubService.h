@@ -15,20 +15,23 @@ public:
 
     void fetchUserRepositories(const QString &username);
 
-    // void fetchRepository(const QString &user, const QString &repo);
-    // void clearRepositories();
+    void fetchRepository(const QString &user, const QString &repo);
+
     void fetchRemoteRepositories(const QString &query,
                                  const QString &sort = "stars",
                                  const QString &order = "desc");
 
     void fetchAuthenticatedUserRepositories(const QString &authToken);
-    // void fetchTrendingRepositories(const int days = 7);
+
+    void fetchGithubStatus();
 
 signals:
-    // void userrepositoryFetched(const QVariant &repository);
+    void userRepositoryFetched(const RepositoryItem &repository);
 
     void userRepositoriesFetched(const QList<RepositoryItem> repoItems);
     void remoteRepositoriesFetched(const QList<RepositoryItem> repoItems);
+
+    void githubStatusFetched(const QString &status, const QString &desc);
 
     void errorOccurred(const QString &errorMsg);
     void loadingStatusChanged(bool isLoading);
@@ -37,9 +40,10 @@ signals:
 
 private slots:
     void onUserRepositoriesFetched();
-    // void onUserRepositoryReceived();
+    void onUserRepositoryFetched();
     void onRemoteRepositoriesFetched();
-    // void onRequestFailed(QNetworkReply::NetworkError error);
+
+    void onGithubStatusFetched();
 
 private:
     QNetworkAccessManager *m_networkManager;

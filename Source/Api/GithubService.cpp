@@ -10,14 +10,12 @@ GitHubService::GitHubService(QObject *parent)
     : QObject{parent}
     , m_networkManager(new QNetworkAccessManager(this))
 
-{
-    // fetchTrendingRepositories();
-}
+{}
 
 RepositoryItem GitHubService::parseRepositoryJson(const QJsonObject &json)
 {
     RepositoryItem repo;
-    // Direct mapping to struct members
+
     repo.id = json["id"].toVariant().toLongLong();
     repo.name = json["name"].toString();
     repo.fullName = json["full_name"].toString();
@@ -36,11 +34,10 @@ RepositoryItem GitHubService::parseRepositoryJson(const QJsonObject &json)
     if (updated.isValid())
         repo.updatedAt = updated;
 
-    // Mapping Nested User Information
     if (json.contains("owner") && json["owner"].isObject()) {
         QJsonObject ownerJson = json["owner"].toObject();
 
-        repo.owner.id = ownerJson["id"].toVariant().toLongLong(); // Match qint64
+        repo.owner.id = ownerJson["id"].toVariant().toLongLong();
         repo.owner.login = ownerJson["login"].toString();
         repo.owner.avatarUrl = ownerJson["avatar_url"].toString();
         repo.owner.htmlUrl = ownerJson["html_url"].toString();
@@ -62,10 +59,6 @@ void GitHubService::fetchUserRepositories(const QString &username)
     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
     request.setRawHeader("Accept", "application/vnd.github.v3+json");
 
-    // if (!authToken.isEmpty()) {
-    //     request.setRawHeader("Authorization", QString("Bearer %1").arg(authToken).toUtf8());
-    // }
-
     qDebug() << "Fetching User Repo 01- 01";
     QNetworkReply *reply = m_networkManager->get(request);
     reply->setProperty("requestType", "userRepositories");
@@ -77,43 +70,23 @@ void GitHubService::fetchUserRepositories(const QString &username)
             &GitHubService::requestFailed);
 }
 
-// void GitHubService::fetchRepository(const QString &user, const QString &repo)
-// {
-//     if (m_isLoading || user.isEmpty() || repo.isEmpty()) {
-//         return;
-//     }
+void GitHubService::fetchRepository(const QString &user, const QString &repo)
+{
+    QUrl url(QString("https://api.github.com/repos/%1/%2").arg(user, repo));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
+    request.setRawHeader("Accept", "application/vnd.github.v3+json");
 
-//     setIsLoading(true);
-//     setErrorMessage(QString());
-//     clearRepositories();
+    QNetworkReply *reply = m_networkManager->get(request);
+    reply->setProperty("requestType", "userSingleRepository");
 
-//     QUrl url(QString("https://api.github.com/repos/%1/%2").arg(user, repo));
-//     QNetworkRequest request(url);
-//     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-//     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
-//     request.setRawHeader("Accept", "application/vnd.github.v3+json");
-
-//     if (!m_authToken.isEmpty()) {
-//         request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
-//     }
-
-//     QNetworkReply *reply = m_networkManager->get(request);
-//     reply->setProperty("requestType", "userSingleRepository");
-
-//     connect(reply, &QNetworkReply::finished, this, &GitHubService ::onUserRepositoryReceived);
-//     connect(reply,
-//             QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
-//             this,
-//             &GitHubService::onRequestFailed);
-// }
-
-// void GitHubService::clearRepositories()
-// {
-//     if (!m_repositories.isEmpty()) {
-//         m_repositories.clear();
-//         emit repositoriesChanged();
-//     }
-// }
+    connect(reply, &QNetworkReply::finished, this, &GitHubService ::onUserRepositoryFetched);
+    connect(reply,
+            QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
+            this,
+            &GitHubService::requestFailed);
+}
 
 void GitHubService::fetchRemoteRepositories(const QString &query,
                                             const QString &sort,
@@ -126,11 +99,6 @@ void GitHubService::fetchRemoteRepositories(const QString &query,
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
     request.setRawHeader("Accept", "application/vnd.github.v3+json");
-
-    // // TODO : if this field is not empty then it throws error
-    // if (!m_authToken.isEmpty()) {
-    //     request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
-    // }
 
     QNetworkReply *reply = m_networkManager->get(request);
     reply->setProperty("requestType", "searchRepositories");
@@ -161,40 +129,23 @@ void GitHubService::fetchAuthenticatedUserRepositories(const QString &authToken)
             &GitHubService::requestFailed);
 }
 
-// void GitHubService::fetchTrendingRepositories(const int days)
-// {
-//     if (m_isLoading) {
-//         return;
-//     }
+void GitHubService::fetchGithubStatus()
+{
+    QUrl url(QString("https://www.githubstatus.com/api/v2/status.json"));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
+    request.setRawHeader("Accept", "application/vnd.github.v3+json");
 
-//     setIsLoading(true);
-//     setErrorMessage(QString());
-//     clearRepositories();
+    QNetworkReply *reply = m_networkManager->get(request);
+    reply->setProperty("requestType", "githubAPIStatus");
 
-//     QDate date = QDate::currentDate().addDays(-days);
-//     QString query = QString("created:>%1").arg(date.toString("yyyy-MM-dd"));
-
-//     QUrl url(
-//         QString("https://api.github.com/search/repositories?q=%1&sort=stars&order=desc&per_page=50")
-//             .arg(query));
-//     QNetworkRequest request(url);
-//     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-//     request.setRawHeader("User-Agent", "GitHubClient-Qt-Modern");
-//     request.setRawHeader("Accept", "application/vnd.github.v3+json");
-
-//     if (!m_authToken.isEmpty()) {
-//         request.setRawHeader("Authorization", QString("Bearer %1").arg(m_authToken).toUtf8());
-//     }
-
-//     QNetworkReply *reply = m_networkManager->get(request);
-//     reply->setProperty("requestType", "searchRepositories");
-
-//     connect(reply, &QNetworkReply::finished, this, &GitHubService ::onSearchResultsReceived);
-//     connect(reply,
-//             QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
-//             this,
-//             &GitHubService::onRequestFailed);
-// }
+    connect(reply, &QNetworkReply::finished, this, &GitHubService ::onGithubStatusFetched);
+    connect(reply,
+            QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply ::errorOccurred),
+            this,
+            &GitHubService::requestFailed);
+}
 
 void GitHubService::onUserRepositoriesFetched()
 {
@@ -243,41 +194,38 @@ void GitHubService::onUserRepositoriesFetched()
     reply->deleteLater();
 }
 
-// void GitHubService::onUserRepositoryReceived()
-// {
-//     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
-//     if (!reply) {
-//         setIsLoading(false);
-//         setErrorMessage("Invalid response received");
-//         return;
-//     }
+void GitHubService::onUserRepositoryFetched()
+{
+    QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+    emit loadingStatusChanged(false);
 
-//     setIsLoading(false);
+    if (!reply || reply->error() != QNetworkReply::NoError) {
+        emit errorOccurred("Network error: " + (reply ? reply->errorString() : "Unknown"));
+        if (reply)
+            reply->deleteLater();
+        return;
+    }
 
-//     if (reply->error() != QNetworkReply::NoError) {
-//         reply->deleteLater();
-//         return;
-//     }
+    QByteArray data = reply->readAll();
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
 
-//     QByteArray data = reply->readAll();
-//     QJsonParseError parseError;
-//     QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        emit errorOccurred(QString("JSON parsing error: %1").arg(parseError.errorString()));
+        reply->deleteLater();
+        return;
+    }
 
-//     if (parseError.error != QJsonParseError::NoError) {
-//         setErrorMessage(QString("JSON parsing error: %1").arg(parseError.errorString()));
-//         reply->deleteLater();
-//         return;
-//     }
+    if (!doc.isObject()) {
+        emit errorOccurred("Expected JSON object for repository");
+        reply->deleteLater();
+        return;
+    }
 
-//     if (!doc.isObject()) {
-//         setErrorMessage("Expected JSON object for repository");
-//         reply->deleteLater();
-//         return;
-//     }
-//     QVariant repository = parseRepositoryJson(doc.object());
-//     emit userrepositoryFetched(repository);
-//     reply->deleteLater();
-// }
+    RepositoryItem repository = parseRepositoryJson(doc.object());
+    emit userRepositoryFetched(repository);
+    reply->deleteLater();
+}
 
 void GitHubService::onRemoteRepositoriesFetched()
 {
@@ -323,4 +271,32 @@ void GitHubService::onRemoteRepositoriesFetched()
     emit remoteRepositoriesFetched(repoList);
     reply->deleteLater();
     qDebug() << "Fetching Remote Repo DONE";
+}
+
+void GitHubService::onGithubStatusFetched()
+{
+    QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+    if (!reply)
+        return;
+
+    if (!reply || reply->error() != QNetworkReply::NoError) {
+        emit errorOccurred("Network error: " + (reply ? reply->errorString() : "Unknown"));
+        if (reply)
+            reply->deleteLater();
+        return;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    QJsonObject root = doc.object();
+    QJsonObject statusObj = root["status"].toObject();
+
+    QString indicator = statusObj["indicator"].toString();
+    QString description = statusObj["description"].toString();
+
+    qDebug() << indicator;
+
+    // bool isOnline = (indicator == "none");
+
+    emit githubStatusFetched(indicator, description);
+    reply->deleteLater();
 }

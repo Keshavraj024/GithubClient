@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QTimer>
 #include "CollectionModel.h"
 #include "CollectionStorage.h"
 #include "GithubService.h"
@@ -16,6 +17,11 @@ class RepositoryController : public QObject
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
     Q_PROPERTY(size_t modelCount READ modelCount NOTIFY modelCountChanged)
+
+    Q_PROPERTY(
+        QString githubStatus WRITE setGithubStatus READ githubStatus NOTIFY githubStatusChanged)
+    Q_PROPERTY(QString githubDesc WRITE setGithubDesc READ githubDesc NOTIFY githubDescChanged)
+
     Q_PROPERTY(RepositoryModel *model READ model CONSTANT)
     Q_PROPERTY(const CollectionModel *collectionModel READ collectionModel CONSTANT)
 
@@ -36,6 +42,8 @@ public:
     Q_INVOKABLE void fetchAuthenticatedUserRepositories();
     // Q_INVOKABLE void fetchTrendingRepositories(const int days = 7);
 
+    Q_INVOKABLE void fetchGithubStatus();
+
     Q_INVOKABLE void toggleSave(int index, const size_t collectionIdx = 0);
     Q_INVOKABLE void refreshSavedItems();
 
@@ -52,6 +60,12 @@ public:
 
     const CollectionModel *collectionModel() const;
 
+    QString githubStatus() const;
+    void setGithubStatus(const QString &newGithubStatus);
+
+    QString githubDesc() const;
+    void setGithubDesc(const QString &newGithubDesc);
+
 signals:
     void authTokenChanged();
 
@@ -61,9 +75,14 @@ signals:
 
     void modelCountChanged();
 
+    void githubStatusChanged();
+
+    void githubDescChanged();
+
 private slots:
     void onUserRepositoriesFetched(const QList<RepositoryItem> repoItems);
     void onRemoteRepositoriesFetched(const QList<RepositoryItem> repoItems);
+    void onGithubStatusFetched(const QString &status, const QString &desc);
 
     void onRequestFailed(QNetworkReply::NetworkError error);
 
@@ -86,4 +105,9 @@ private:
     bool m_isLoading{false};
     QString m_errorMessage;
     size_t m_modelCount;
+
+    bool m_isFetchingGithubStatus{false};
+    QTimer *m_timer{nullptr};
+    QString m_githubDesc;
+    QString m_githubStatus;
 };

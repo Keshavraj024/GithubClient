@@ -4,6 +4,7 @@
 
 RepositoryController::RepositoryController(QObject *parent)
     : QObject(parent)
+    , m_timer(new QTimer(this))
 {
     m_repostorage = std::make_unique<RepositoryStorage>(
         QSqlDatabase::database("github_connection"));
@@ -24,10 +25,28 @@ RepositoryController::RepositoryController(QObject *parent)
             this,
             &RepositoryController::setErrorMessage);
 
+    connect(m_gitService,
+            &GitHubService::userRepositoriesFetched,
+            this,
+            &RepositoryController::onUserRepositoriesFetched);
+
+    connect(m_gitService,
+            &GitHubService::remoteRepositoriesFetched,
+            this,
+            &RepositoryController::onRemoteRepositoriesFetched);
+
+    connect(m_gitService,
+            &GitHubService::githubStatusFetched,
+            this,
+            &RepositoryController::onGithubStatusFetched);
+
     fetchRemoteRepositories("stars:>10000", "stars", "desc");
-    // refreshSavedItems();
 
     loadCollections();
+
+    connect(m_timer, &QTimer::timeout, this, &RepositoryController::fetchGithubStatus);
+    QTimer::singleShot(0, this, &RepositoryController::fetchGithubStatus);
+    m_timer->start(60000);
 }
 
 RepositoryModel *RepositoryController::model()
@@ -74,11 +93,6 @@ void RepositoryController::fetchUserRepositories(const QString &username)
     setErrorMessage(QString());
     m_repomodel.clearSearch();
     m_gitService->fetchUserRepositories(username);
-
-    connect(m_gitService,
-            &GitHubService::userRepositoriesFetched,
-            this,
-            &RepositoryController::onUserRepositoriesFetched);
 }
 
 void RepositoryController::fetchAuthenticatedUserRepositories()
@@ -91,11 +105,6 @@ void RepositoryController::fetchAuthenticatedUserRepositories()
     setErrorMessage(QString());
     m_repomodel.clearSearch();
     m_gitService->fetchAuthenticatedUserRepositories(m_authToken);
-
-    connect(m_gitService,
-            &GitHubService::userRepositoriesFetched,
-            this,
-            &RepositoryController::onUserRepositoriesFetched);
 }
 
 void RepositoryController::onUserRepositoriesFetched(const QList<RepositoryItem> repoItems)
@@ -120,11 +129,6 @@ void RepositoryController::fetchRemoteRepositories(const QString &query,
     setErrorMessage(QString());
     m_repomodel.clearSearch();
     m_gitService->fetchRemoteRepositories(query, sort, order);
-
-    connect(m_gitService,
-            &GitHubService::remoteRepositoriesFetched,
-            this,
-            &RepositoryController::onRemoteRepositoriesFetched);
 }
 
 void RepositoryController::onRemoteRepositoriesFetched(const QList<RepositoryItem> repoItems)
@@ -134,6 +138,25 @@ void RepositoryController::onRemoteRepositoriesFetched(const QList<RepositoryIte
     reconcileWithDatabase(finalResults);
     m_repomodel.updateFromApi(finalResults);
     emit modelCountChanged();
+}
+
+void RepositoryController::fetchGithubStatus()
+{
+    if (m_isFetchingGithubStatus) {
+        return;
+    }
+
+    m_isFetchingGithubStatus = true;
+    setErrorMessage(QString());
+    m_gitService->fetchGithubStatus();
+}
+
+void RepositoryController::onGithubStatusFetched(const QString &status, const QString &desc)
+{
+    qDebug() << "Fetching Guthub status " << desc;
+    setGithubStatus(status);
+    setGithubDesc(desc);
+    m_isFetchingGithubStatus = false;
 }
 
 void RepositoryController::reconcileWithDatabase(QList<RepositoryItem> &apiResults)
@@ -214,6 +237,8 @@ void RepositoryController::onRequestFailed(QNetworkReply::NetworkError error)
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
 
     setIsLoading(false);
+    m_isFetchingGithubStatus = false;
+
     QString errorMsg;
     switch (error) {
     case QNetworkReply::AuthenticationRequiredError:
@@ -249,4 +274,30 @@ size_t RepositoryController::modelCount() const
 const CollectionModel *RepositoryController::collectionModel() const
 {
     return &m_collectionModel;
+}
+
+QString RepositoryController::githubStatus() const
+{
+    return m_githubStatus;
+}
+
+void RepositoryController::setGithubStatus(const QString &newGithubStatus)
+{
+    if (m_githubStatus == newGithubStatus)
+        return;
+    m_githubStatus = newGithubStatus;
+    emit githubStatusChanged();
+}
+
+QString RepositoryController::githubDesc() const
+{
+    return m_githubDesc;
+}
+
+void RepositoryController::setGithubDesc(const QString &newGithubDesc)
+{
+    if (m_githubDesc == newGithubDesc)
+        return;
+    m_githubDesc = newGithubDesc;
+    emit githubDescChanged();
 }

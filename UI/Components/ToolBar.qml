@@ -41,13 +41,17 @@ Item {
 
             }
 
+            Rectangle {
+
+            }
+
             CustomButton {
                 id: refereshBtn
 
                 Layout.preferredWidth: 100
                 Layout.preferredHeight: 30
 
-                buttonText: "⟳ Refresh"
+                buttonText: "🔄 Refresh"
 
                 onButtonClicked: root.refreshButtonClicked()
             }
