@@ -17,7 +17,9 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     DatabaseManager db;
-    db.initialize();
+    if (!db.initialize()) {
+        qWarning() << "Database init failed";
+    }
 
     qRegisterMetaType<RepositoryItem>("RepositoryItem");
     qRegisterMetaType<QList<RepositoryItem>>("QList<RepositoryItem>");

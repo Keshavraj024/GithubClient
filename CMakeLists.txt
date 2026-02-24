@@ -36,6 +36,7 @@ qt_add_qml_module(GithubClient
             UI/Components/Header.qml
             UI/Components/ToolBar.qml
             UI/Components/ErrorPopup.qml
+            UI/Components/SaveDialog.qml
 
             UI/Controls/ColorBehavior.qml
 
@@ -49,10 +50,6 @@ qt_add_qml_module(GithubClient
             Assets/images/sun.png
             Assets/images/moon.png
             Assets/icons/search.png
-            SOURCES Include/Repository/CollectionItem.h
-            SOURCES Include/DatabaseManager/CollectionStorage.h
-            SOURCES Source/DatabaseManager/CollectionStorage.cpp
-            QML_FILES UI/Components/SaveDialog.qml
         )
 
 
