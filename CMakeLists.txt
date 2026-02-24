@@ -53,7 +53,7 @@ qt_add_qml_module(GithubClient
         )
 
 
-target_include_directories(GithubClient PRIVATE Include/Repository Include/User Include/Api Include/DatabaseManager Include/DatabaseManager/DataModels)
+target_include_directories(GithubClient PRIVATE Include/Repository Include/User Include/Api Include/DatabaseManager Include/DataModels)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

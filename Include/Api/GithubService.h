@@ -4,6 +4,7 @@
 #include <QNetworkReply>
 #include <QObject>
 #include <QQmlEngine>
+#include "GithubRateLimitMonitor.h"
 #include "RepositoryItem.h"
 
 class GitHubService : public QObject
@@ -47,6 +48,7 @@ private slots:
 
 private:
     QNetworkAccessManager *m_networkManager;
+    GitHubRateLimitMonitor *m_rateLimitMonitor;
 
 private:
     RepositoryItem parseRepositoryJson(const QJsonObject &json);

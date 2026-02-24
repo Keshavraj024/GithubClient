@@ -9,6 +9,7 @@
 GitHubService::GitHubService(QObject *parent)
     : QObject{parent}
     , m_networkManager(new QNetworkAccessManager(this))
+    , m_rateLimitMonitor(new GitHubRateLimitMonitor(this))
 
 {}
 
@@ -160,6 +161,8 @@ void GitHubService::onUserRepositoriesFetched()
         return;
     }
 
+    m_rateLimitMonitor->processReply(reply);
+
     QByteArray data = reply->readAll();
     QJsonParseError parseError;
     QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
@@ -240,6 +243,8 @@ void GitHubService::onRemoteRepositoriesFetched()
             reply->deleteLater();
         return;
     }
+
+    m_rateLimitMonitor->processReply(reply);
 
     QByteArray data = reply->readAll();
     QJsonParseError parseError;
