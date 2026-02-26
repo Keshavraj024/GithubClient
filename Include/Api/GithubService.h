@@ -7,6 +7,8 @@
 #include "GithubRateLimitMonitor.h"
 #include "RepositoryItem.h"
 
+#include <QtTaskTree>
+
 class GitHubService : public QObject
 {
     Q_OBJECT
@@ -40,16 +42,23 @@ signals:
     void requestFailed(QNetworkReply::NetworkError error);
 
 private slots:
-    void onUserRepositoriesFetched();
-    void onUserRepositoryFetched();
-    void onRemoteRepositoriesFetched();
-
     void onGithubStatusFetched();
 
 private:
+    struct RepositoryRequestContext
+    {
+        QByteArray data;
+    };
+
+    QtTaskTree::Storage<RepositoryRequestContext> m_storage;
+
     QNetworkAccessManager *m_networkManager;
     GitHubRateLimitMonitor *m_rateLimitMonitor;
 
+    QtTaskTree::QTaskTree m_taskTree;
+    QString m_lastError;
+
 private:
-    RepositoryItem parseRepositoryJson(const QJsonObject &json);
+    void executeRepositoryRequest(
+        std::function<void(QtTaskTree::QNetworkReplyWrapper &)> prepareRequest);
 };
